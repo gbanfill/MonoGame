@@ -396,8 +396,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
     <DebugSymbols>true</DebugSymbols>
+<<<<<<< HEAD
     <OutputPath>bin\x86\Debug\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;DEBUG;WINRT;NOMOJO;DIRECTX</DefineConstants>
+=======
+    <OutputPath>bin\Windows 8\x86\Debug\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;DEBUG;WINRT;WINDOWS_STOREAPP;DIRECTX</DefineConstants>
+>>>>>>> 10ce441... Update for assembly name change. Installer works for VS2010. Still need to test and fix things for other platforms.
     <NoStdLib>true</NoStdLib>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
@@ -407,8 +412,13 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+<<<<<<< HEAD
     <OutputPath>bin\x86\Release\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINRT;NOMOJO;DIRECTX</DefineConstants>
+=======
+    <OutputPath>bin\Windows 8\x86\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;WINRT;WINDOWS_STOREAPP;DIRECTX</DefineConstants>
+>>>>>>> 10ce441... Update for assembly name change. Installer works for VS2010. Still need to test and fix things for other platforms.
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
     <NoStdLib>true</NoStdLib>
@@ -421,8 +431,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
+<<<<<<< HEAD
     <OutputPath>bin\x64\Debug\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;DEBUG;WINRT;NOMOJO;DIRECTX</DefineConstants>
+=======
+    <OutputPath>bin\Windows 8\x64\Debug\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;DEBUG;WINRT;WINDOWS_STOREAPP;DIRECTX</DefineConstants>
+>>>>>>> 10ce441... Update for assembly name change. Installer works for VS2010. Still need to test and fix things for other platforms.
     <NoStdLib>true</NoStdLib>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
@@ -432,8 +447,13 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+<<<<<<< HEAD
     <OutputPath>bin\x64\Release\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINRT;NOMOJO;DIRECTX</DefineConstants>
+=======
+    <OutputPath>bin\Windows 8\x64\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;WINRT;WINDOWS_STOREAPP;DIRECTX</DefineConstants>
+>>>>>>> 10ce441... Update for assembly name change. Installer works for VS2010. Still need to test and fix things for other platforms.
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
     <NoStdLib>true</NoStdLib>
@@ -446,8 +466,13 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
+<<<<<<< HEAD
     <OutputPath>bin\ARM\Debug\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;DEBUG;WINRT;NOMOJO;DIRECTX</DefineConstants>
+=======
+    <OutputPath>bin\Windows 8\ARM\Debug\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;DEBUG;WINRT;WINDOWS_STOREAPP;DIRECTX</DefineConstants>
+>>>>>>> 10ce441... Update for assembly name change. Installer works for VS2010. Still need to test and fix things for other platforms.
     <NoStdLib>true</NoStdLib>
     <DebugType>full</DebugType>
     <PlatformTarget>ARM</PlatformTarget>
@@ -457,8 +482,13 @@
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
+<<<<<<< HEAD
     <OutputPath>bin\ARM\Release\</OutputPath>
     <DefineConstants>TRACE;NETFX_CORE;WINRT;NOMOJO;DIRECTX</DefineConstants>
+=======
+    <OutputPath>bin\Windows 8\ARM\Release\</OutputPath>
+    <DefineConstants>TRACE;NETFX_CORE;WINRT;WINDOWS_STOREAPP;DIRECTX</DefineConstants>
+>>>>>>> 10ce441... Update for assembly name change. Installer works for VS2010. Still need to test and fix things for other platforms.
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
     <NoStdLib>true</NoStdLib>
