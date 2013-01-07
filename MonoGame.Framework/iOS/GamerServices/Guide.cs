@@ -76,6 +76,7 @@ using System.Threading;
 using MonoTouch.Foundation;
 using MonoTouch.GameKit;
 using MonoTouch.UIKit;
+using MonoTouch.CoreGraphics;
 
 using Microsoft.Xna.Framework.Net;
 using Microsoft.Xna.Framework.Storage;
@@ -158,7 +159,7 @@ namespace Microsoft.Xna.Framework.GamerServices
 		private static bool _isInitialised;
 		private static UIWindow _window;
 		private static UIViewController _gameViewController;
-
+        private static UIActivityIndicatorView _indicatorView;
         public static GKMatch Match { get; private set; }
 
 		internal static void Initialise(Game game)
@@ -245,8 +246,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 			keyboardViewController = new KeyboardInputViewController(
 				title, description, defaultText, usePasswordMode);
 
-            (_gameViewController.View as iOSGameView).PreserveFrameBuffer = true;
-
 			_gameViewController.PresentModalViewController (keyboardViewController, true);
 
 			keyboardViewController.View.InputAccepted += (sender, e) => {
@@ -266,7 +265,6 @@ namespace Microsoft.Xna.Framework.GamerServices
 		{
 			AssertInitialised ();
 
-            (_gameViewController.View as iOSGameView).PreserveFrameBuffer = false;
             keyboardViewController = null;
 
 			if (!(result is KeyboardInputAsyncResult))
@@ -306,6 +304,49 @@ namespace Microsoft.Xna.Framework.GamerServices
 
 			return result;
 		}
+
+		public static void AddSubview (UIView aView)
+		{
+            UIApplication.SharedApplication.InvokeOnMainThread(delegate {
+               _gameViewController.Add(aView);
+            });
+		}
+
+        public static void BeginShowActivityIndicator ()
+        {
+            if (_window != null)
+            {
+                if(_gameViewController != null)
+                {
+                    if(_indicatorView==null)
+                    {
+                        prevGestures=TouchPanel.EnabledGestures;
+                        TouchPanel.EnabledGestures=GestureType.None;
+                        UIApplication.SharedApplication.InvokeOnMainThread(delegate {
+                            _indicatorView = new UIActivityIndicatorView(_window.Frame);
+                            _indicatorView.ActivityIndicatorViewStyle= UIActivityIndicatorViewStyle.WhiteLarge;
+                            _window.Add(_indicatorView);
+                            _indicatorView.StartAnimating();
+                            //scale it
+                          //  _indicatorView.Transform= CGAffineTransform.MakeScale(2.0f, 2.0f);
+                       
+                    });
+                    }
+                }
+            }
+        }
+
+        public static void EndShowActivityIndicator ()
+        {
+            TouchPanel.EnabledGestures=prevGestures;
+            UIApplication.SharedApplication.InvokeOnMainThread(delegate {
+            if (_indicatorView != null) {
+                _indicatorView.StopAnimating ();
+                _indicatorView.RemoveFromSuperview ();
+                _indicatorView = null;
+            }
+            });
+        }
 
 		public static IAsyncResult BeginShowMessageBox(
 			PlayerIndex player, string title, string text, IEnumerable<string> buttons, int focusButton,

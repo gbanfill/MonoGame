@@ -404,6 +404,7 @@ namespace Microsoft.Xna.Framework.Graphics
             // the state to be reapplied.
             Textures.Clear();
             SamplerStates.Clear();
+            Effect.FlushCache();
 
             // Clear constant buffers
             _vertexConstantBuffers.Clear();
@@ -1937,9 +1938,14 @@ namespace Microsoft.Xna.Framework.Graphics
 #endif
         }
 
-        public void DrawPrimitives(PrimitiveType primitiveType, int vertexStart, int primitiveCount)
+        public void DrawPrimitives (PrimitiveType primitiveType, int vertexStart, int primitiveCount)
         {
-            Debug.Assert(_vertexBuffer != null, "The vertex buffer is null!");
+            Debug.Assert (_vertexBuffer != null, "The vertex buffer is null!");
+
+            if (!GL.IsBuffer (_vertexBuffer.vbo)) {
+                _vertexBuffer.vbo=0;
+                _vertexBuffer.GenerateIfRequired();
+            }
 
             var vertexCount = GetElementCountArray(primitiveType, primitiveCount);
 
