@@ -145,12 +145,20 @@ namespace Microsoft.Xna.Framework
             base.Dispose(disposing);
             if (disposing)
             {
+                if (_runTimer != null) {
+                    _runTimer.Invalidate ();
+                    _runTimer.Dispose ();
+                    _runTimer = null;
+                }
+                
+                UIApplication.SharedApplication.SetStatusBarHidden(false, UIStatusBarAnimation.Fade);
+
                 if (_viewController != null)
                 {
                     _viewController.View.RemoveFromSuperview ();
                     _viewController.RemoveFromParentViewController ();
-                    _viewController.Dispose();
-                    _viewController = null;
+//                    _viewController.Dispose();
+//                    _viewController = null;
                 }
 
                 if (_mainWindow != null)
@@ -186,22 +194,76 @@ namespace Microsoft.Xna.Framework
 
         private void Tick()
         {
-            if (!Game.IsActive)
-                return;
+            try {
+                if (PerformPendingExit())
+                    return;
+                if (IsPlayingVideo)
+                    return;
+                if (!Game.IsActive)
+                    return;
+                
+                // FIXME: Remove this call, and the whole Tick method, once
+                //        GraphicsDevice is where platform-specific Present
+                //        functionality is actually implemented.  At that
+                //        point, it should be possible to pass Game.Tick
+                //        directly to NSTimer.CreateRepeatingTimer.
+                _viewController.View.MakeCurrent();
+                Game.Tick ();
+                
+                if (!IsPlayingVideo)
+                    _viewController.View.Present ();
+                
+                PerformPendingExit();
+            } catch (Exception ex) {
+#if DEBUG               
+                Console.WriteLine(
+                    "Error while processing the main game loop: {0}\n{1}",
+                    ex.Message, ex.StackTrace);
+#endif
+                Game.Exit ();
+            }
+        }
 
-            if (IsPlayingVideo)
-                return;
+        private bool PerformPendingExit()
+        {
+            if (!_isExitPending)
+                return false;
+            
+            _isExitPending = false;
 
-            // FIXME: Remove this call, and the whole Tick method, once
-            //        GraphicsDevice is where platform-specific Present
-            //        functionality is actually implemented.  At that
-            //        point, it should be possible to pass Game.Tick
-            //        directly to NSTimer.CreateRepeatingTimer.
-            _viewController.View.MakeCurrent();
-            Game.Tick ();
+            if (_runTimer != null) {
+                _runTimer.Invalidate ();
+                _runTimer.Dispose ();
+                _runTimer = null;
+            }
+            
+            UIApplication.SharedApplication.SetStatusBarHidden(false, UIStatusBarAnimation.Fade);
+            
+            
+            if (_viewController != null)
+            {
+                _viewController.View.RemoveFromSuperview ();
+                _viewController.RemoveFromParentViewController ();
+//                _viewController.Dispose();
+//                _viewController = null;
+            }
+            
+            if (_mainWindow != null)
+            {
+                _mainWindow.RemoveFromSuperview();
+                _mainWindow.Dispose();
+                _mainWindow = null;
+            }
+            
+            StopObservingUIApplication ();
+            RaiseAsyncRunLoopEnded ();
+            return true;
+        }
 
-            if (!IsPlayingVideo)
-                _viewController.View.Present ();
+        private void StopObservingUIApplication()
+        {
+            NSNotificationCenter.DefaultCenter.RemoveObservers(_applicationObservers);
+            _applicationObservers.Clear();
         }
 
         public override bool BeforeDraw(GameTime gameTime)
@@ -236,6 +298,7 @@ namespace Microsoft.Xna.Framework
         public override void Exit()
         {
             // Do Nothing: iOS games do not "exit" or shut down.
+            _isExitPending=true;
         }
 
         private void BeginObservingUIApplication()

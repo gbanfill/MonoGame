@@ -107,7 +107,7 @@ namespace Microsoft.Xna.Framework.Graphics
         /// <summary>
         /// If the VBO does not exist, create it.
         /// </summary>
-        void GenerateIfRequired()
+        internal void GenerateIfRequired()
         {
             if (vbo == 0)
             {
