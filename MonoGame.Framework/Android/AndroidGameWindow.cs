@@ -130,6 +130,7 @@ namespace Microsoft.Xna.Framework
                 GLContextVersion = GLContextVersion.Gles2_0;
 				try
 				{
+					GraphicsMode = new AndroidGraphicsMode(new ColorFormat(8, 8, 8, 8), 0, 0, 0, 0, false);
 					base.CreateFrameBuffer();
 				}
 				catch(Exception)

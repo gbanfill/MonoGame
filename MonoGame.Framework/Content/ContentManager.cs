@@ -361,6 +361,10 @@ namespace Microsoft.Xna.Framework.Content
             {
                 return EffectReader.Normalize(assetName);
             }
+            else if (typeof(T) == typeof(Stream))
+            {
+                return assetName;
+            }
             return null;
         }
 
@@ -403,6 +407,9 @@ namespace Microsoft.Xna.Framework.Content
                     assetStream.Read(data, 0, (int)assetStream.Length);
                     return new Effect(this.graphicsDeviceService.GraphicsDevice, data);
                 }
+            }else if (typeof(T) == typeof(Stream))
+            {
+                return TitleContainer.OpenStream(assetName);
             }
             return null;
         }
