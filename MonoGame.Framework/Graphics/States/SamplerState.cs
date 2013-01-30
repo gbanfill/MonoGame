@@ -41,17 +41,17 @@
 using System;
 using System.Diagnostics;
 
+#if OPENGL
 #if MONOMAC
 using MonoMac.OpenGL;
 #elif WINDOWS || LINUX
 using OpenTK.Graphics.OpenGL;
-#elif WINRT
-// TODO
 #elif GLES
 using OpenTK.Graphics.ES20;
 using TextureTarget = OpenTK.Graphics.ES20.All;
 using TextureMinFilter = OpenTK.Graphics.ES20.All;
 using TextureParameterName = OpenTK.Graphics.ES20.All;
+#endif
 #endif
 
 namespace Microsoft.Xna.Framework.Graphics
@@ -248,6 +248,12 @@ namespace Microsoft.Xna.Framework.Graphics
 				GL.TexParameter(target, TextureParameterName.TextureMinFilter, (int)(useMipmaps ? TextureMinFilter.LinearMipmapLinear : TextureMinFilter.Linear));
                 GraphicsExtensions.CheckGLError();
 				GL.TexParameter(target, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+                GraphicsExtensions.CheckGLError();
+				break;
+			case TextureFilter.PointMipLinear:
+				GL.TexParameter(target, TextureParameterName.TextureMinFilter, (int)(useMipmaps ? TextureMinFilter.LinearMipmapNearest : TextureMinFilter.Nearest));
+                GraphicsExtensions.CheckGLError();
+				GL.TexParameter(target, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
                 GraphicsExtensions.CheckGLError();
 				break;
 			default:

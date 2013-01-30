@@ -43,7 +43,7 @@ using System.IO;
 
 using Microsoft.Xna.Framework.Audio;
 
-#if IPHONE
+#if IOS
 using MonoTouch.Foundation;
 using MonoTouch.AVFoundation;
 #endif
@@ -52,11 +52,11 @@ namespace Microsoft.Xna.Framework.Media
 {
     public sealed class Song : IEquatable<Song>, IDisposable
     {
-#if IPHONE
+#if IOS
 		private AVAudioPlayer _sound;
 #elif PSM
         private PSSuiteSong _sound;
-#elif !WINRT
+#elif !DIRECTX
 		private SoundEffectInstance _sound;
 #endif
 		
@@ -68,13 +68,13 @@ namespace Microsoft.Xna.Framework.Media
 		{			
 			_name = fileName;
 			
-#if IPHONE
+#if IOS
 			_sound = AVAudioPlayer.FromUrl(NSUrl.FromFilename(fileName));
 			_sound.NumberOfLoops = 0;
             _sound.FinishedPlaying += OnFinishedPlaying;
 #elif PSM
             _sound = new PSSuiteSong(_name);
-#elif !WINRT       
+#elif !DIRECTX
             _sound = new SoundEffect(_name).CreateInstance();
 #endif
 		}
@@ -99,12 +99,12 @@ namespace Microsoft.Xna.Framework.Media
         {
             if (!disposed)
             {
-#if !WINRT
+#if !DIRECTX
                 if (disposing)
                 {
                     if (_sound != null)
                     {
-#if IPHONE
+#if IOS
                        _sound.FinishedPlaying -= OnFinishedPlaying;
 #endif
                         _sound.Dispose();
@@ -116,9 +116,9 @@ namespace Microsoft.Xna.Framework.Media
             }
         }
         
-		public bool Equals(Song song) 		
+		public bool Equals(Song song)
         {
-#if WINRT
+#if DIRECTX
             return song != null && song.FilePath == FilePath;
 #else
 			return ((object)song != null) && (Name == song.Name);
@@ -155,7 +155,7 @@ namespace Microsoft.Xna.Framework.Media
 		  return ! (song1 == song2);
 		}
 
-#if !WINRT
+#if !DIRECTX
         internal delegate void FinishedPlayingHandler(object sender, EventArgs args);
 		event FinishedPlayingHandler DonePlaying;
 
@@ -192,11 +192,12 @@ namespace Microsoft.Xna.Framework.Media
 		{
 			if (_sound == null)
 				return;			
-    #if IPHONE
+#if IOS
+
 			_sound.Play();
-    #else
+#else
 			_sound.Resume();
-    #endif
+#endif
 		}
 		
 		internal void Pause()
@@ -232,7 +233,7 @@ namespace Microsoft.Xna.Framework.Media
 					_sound.Volume = value;
 			}			
 		}
-#endif // !WINRT
+#endif // !DIRECTX
 
         // TODO: Implement
         public TimeSpan Duration
