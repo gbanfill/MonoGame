@@ -645,52 +645,51 @@ namespace Microsoft.Xna.Framework.Graphics
 				return texture;
 			}
 #elif ANDROID
-            using (Bitmap image = BitmapFactory.DecodeStream(stream, null, new BitmapFactory.Options
+            // This is a roll back of jonathanpeppers commit Nov 2012 "Android - fixed memory usage in Texture2D"
+            // FromStream doesnt work on NExus 10 when using our cache.
+
+            // Work-around for "The program 'Mono' has exited with code 255 (0xff)."	
+            // Based on http://stackoverflow.com/questions/7535503/mono-for-android-exit-code-255-on-bitmapfactory-decodestream
+            //Bitmap image = BitmapFactory.DecodeStream(stream);
+
+            Bitmap image = null;
+            using (MemoryStream memStream = new MemoryStream())
             {
-                InScaled = false,
-                InDither = false,
-                InJustDecodeBounds = false,
-                InPurgeable = true,
-                InInputShareable = true,
-            }))
-            {
-                var width = image.Width;
-                var height = image.Height;
-
-                int[] pixels = new int[width * height];
-                if ((width != image.Width) || (height != image.Height))
-                {
-                    using (Bitmap imagePadded = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888))
-                    {
-                        Canvas canvas = new Canvas(imagePadded);
-                        canvas.DrawARGB(0, 0, 0, 0);
-                        canvas.DrawBitmap(image, 0, 0, null);
-                        imagePadded.GetPixels(pixels, 0, width, 0, 0, width, height);
-                        imagePadded.Recycle();
-                    }
-                }
-                else
-                {
-                    image.GetPixels(pixels, 0, width, 0, 0, width, height);
-                }
-                image.Recycle();
-
-                // Convert from ARGB to ABGR
-                for (int i = 0; i < width * height; ++i)
-                {
-                    uint pixel = (uint)pixels[i];
-                    pixels[i] = (int)((pixel & 0xFF00FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16));
-                }
-
-                Texture2D texture = null;
-                Threading.BlockOnUIThread(() =>
-                {
-                    texture = new Texture2D(graphicsDevice, width, height, false, SurfaceFormat.Color);
-                    texture.SetData<int>(pixels);
-                });
-
-                return texture;
+                stream.CopyTo(memStream);
+                image = BitmapFactory.DecodeByteArray(memStream.GetBuffer(), 0, (int)memStream.Length);
             }
+
+            var width = image.Width;
+            var height = image.Height;
+            int[] pixels = new int[width * height];
+            if ((width != image.Width) || (height != image.Height))
+            {
+                Bitmap imagePadded = Bitmap.CreateBitmap(width, height, Bitmap.Config.Argb8888);
+                Canvas canvas = new Canvas(imagePadded);
+                canvas.DrawARGB(0, 0, 0, 0);
+                canvas.DrawBitmap(image, 0, 0, null);
+                imagePadded.GetPixels(pixels, 0, width, 0, 0, width, height);
+            }
+            else
+            {
+                image.GetPixels(pixels, 0, width, 0, 0, width, height);
+            }
+
+            // Convert from ARGB to ABGR
+            for (int i = 0; i < width * height; ++i)
+            {
+                uint pixel = (uint)pixels[i];
+                pixels[i] = (int)((pixel & 0xFF00FF00) | ((pixel & 0x00FF0000) >> 16) | ((pixel & 0x000000FF) << 16));
+            }
+
+            Texture2D texture = null;
+            Threading.BlockOnUIThread(() =>
+            {
+                texture = new Texture2D(graphicsDevice, width, height, false, SurfaceFormat.Color);
+                texture.SetData<int>(pixels);
+            });
+
+            return texture;
 
 #elif WINDOWS_STOREAPP
 
