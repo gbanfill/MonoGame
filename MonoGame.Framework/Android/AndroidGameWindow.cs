@@ -122,6 +122,8 @@ namespace Microsoft.Xna.Framework
             return true;
         }
 
+        public static AndroidGraphicsMode OverrideGraphicsMode { get; set; }
+
 		protected override void CreateFrameBuffer()
 		{
             Android.Util.Log.Debug("MonoGame", "AndroidGameWindow.CreateFrameBuffer");
@@ -130,6 +132,10 @@ namespace Microsoft.Xna.Framework
                 GLContextVersion = GLContextVersion.Gles2_0;
 				try
 				{
+                    if (OverrideGraphicsMode != null)
+                    {
+                        GraphicsMode = OverrideGraphicsMode;
+                    }
 					base.CreateFrameBuffer();
 				}
 				catch(Exception)
