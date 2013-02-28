@@ -45,8 +45,6 @@ namespace Microsoft.Xna.Framework
 		    
 		    screenReceiver = new ScreenReceiver();
 		    RegisterReceiver(screenReceiver, filter);
-
-            RequestWindowFeature(WindowFeatures.NoTitle);
 		}
 
         public static event EventHandler Paused;
