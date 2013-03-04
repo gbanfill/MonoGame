@@ -108,17 +108,20 @@ namespace Microsoft.Xna.Framework
             //TODO: Fix this
             try
             {
-				if (!_exiting)
-				{
-					_exiting = true;
-					Game.DoExiting();
+                if (!_exiting)
+                {
+                    _exiting = true;
+                    Game.DoExiting();
                     Net.NetworkSession.Exit();
-               	    Game.Activity.Finish();
-				    Window.Close();
-				}
+                    Game.Activity.Finish();
+                    Window.Close();
+                }
             }
-            catch
+            catch (Exception ex)
             {
+                Log("Unable to exit app due to " + ex.Message);
+                Log(ex.ToString());
+                _exiting = false;
             }
         }
 
