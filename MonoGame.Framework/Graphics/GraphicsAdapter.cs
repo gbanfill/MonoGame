@@ -84,6 +84,7 @@ namespace Microsoft.Xna.Framework.Graphics
         
         public void Dispose()
         {
+            adapters = null;
         }
 
         public DisplayMode CurrentDisplayMode
@@ -142,7 +143,13 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
                 return adapters;
             }
-        } 
+        }
+
+        public static void DisposeAll()
+        {
+            DefaultAdapter.Dispose();
+            adapters = null;
+        }
 		
 		public bool QueryRenderTargetFormat(
 			GraphicsProfile graphicsProfile,
