@@ -119,7 +119,7 @@ namespace Microsoft.Xna.Framework
 				    Window.Close();
 				}
             }
-            catch
+			catch(Exception ex)
 			{
 					Log("Unable to exit app due to " + ex.Message);
 					Log(ex.ToString());
