@@ -13,16 +13,16 @@ using $safeprojectname$.Resources;
 
 namespace $safeprojectname$
 {
-    public partial class MainPage : PhoneApplicationPage
+    public partial class GamePage : PhoneApplicationPage
     {
         private Game1 _game;
 
         // Constructor
-        public MainPage()
+        public GamePage()
         {
             InitializeComponent();
 
-            _game = XamlGame<Game1>.Create("", XnaSurface);
+            _game = XamlGame<Game1>.Create("", this);
 
             // Sample code to localize the ApplicationBar
             //BuildLocalizedApplicationBar();

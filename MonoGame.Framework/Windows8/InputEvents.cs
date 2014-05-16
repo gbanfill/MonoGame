@@ -213,33 +213,39 @@ namespace Microsoft.Xna.Framework
 
             var state = point.Properties;
 
-            Mouse.State.X = x;
-            Mouse.State.Y = y;
-            Mouse.State.ScrollWheelValue += state.MouseWheelDelta;
-            Mouse.State.LeftButton = state.IsLeftButtonPressed ? ButtonState.Pressed : ButtonState.Released;
-            Mouse.State.RightButton = state.IsRightButtonPressed ? ButtonState.Pressed : ButtonState.Released;
-            Mouse.State.MiddleButton = state.IsMiddleButtonPressed ? ButtonState.Pressed : ButtonState.Released;
+            Mouse.PrimaryWindow.MouseState.X = x;
+            Mouse.PrimaryWindow.MouseState.Y = y;
+            Mouse.PrimaryWindow.MouseState.ScrollWheelValue += state.MouseWheelDelta;
+            Mouse.PrimaryWindow.MouseState.LeftButton = state.IsLeftButtonPressed ? ButtonState.Pressed : ButtonState.Released;
+            Mouse.PrimaryWindow.MouseState.RightButton = state.IsRightButtonPressed ? ButtonState.Pressed : ButtonState.Released;
+            Mouse.PrimaryWindow.MouseState.MiddleButton = state.IsMiddleButtonPressed ? ButtonState.Pressed : ButtonState.Released;
         }
 
         public void UpdateState()
         {
             // Update the keyboard state.
-            Keyboard.State = new KeyboardState(_keys.ToArray());
+            Keyboard.SetKeys(_keys);
         }
 
-        private static Keys KeyTranslate(Windows.System.VirtualKey inkey)
+        private static Keys KeyTranslate(Windows.System.VirtualKey inkey, CorePhysicalKeyStatus keyStatus)
         {
             switch (inkey)
             {
-                // XNA does not have have 'handless' key values.
-                // So, we arebitrarily map those to the 'Left' version.                 
+                // WinRT does not distinguish between left/right keys
+                // We have to check for special keys such as control/shift/alt/ etc
                 case Windows.System.VirtualKey.Control:
-                    return Keys.LeftControl;
+                    // we can detect right Control by checking the IsExtendedKey value.
+                    return (keyStatus.IsExtendedKey) ? Keys.RightControl : Keys.LeftControl;
                 case Windows.System.VirtualKey.Shift:
-                    return Keys.LeftShift;
+                    // we can detect right shift by checking the scancode value.
+                    // left shift is 0x2A, right shift is 0x36. IsExtendedKey is always false.
+                    return (keyStatus.ScanCode==0x36) ? Keys.RightShift : Keys.LeftShift;
                 // Note that the Alt key is now refered to as Menu.
-                case Windows.System.VirtualKey.Menu:
+                // ALT key doesn't get fired by KeyUp/KeyDown events.
+                // One solution could be to check CoreWindow.GetKeyState(...) on every tick.
+                case Windows.System.VirtualKey.Menu:                    
                     return Keys.LeftAlt;
+
                 default:
                     return (Keys)inkey;
             }
@@ -247,7 +253,7 @@ namespace Microsoft.Xna.Framework
 
         private void CoreWindow_KeyUp(object sender, KeyEventArgs args)
         {
-            var xnaKey = KeyTranslate(args.VirtualKey);
+            var xnaKey = KeyTranslate(args.VirtualKey, args.KeyStatus);
 
             if (_keys.Contains(xnaKey))
                 _keys.Remove(xnaKey);
@@ -255,7 +261,7 @@ namespace Microsoft.Xna.Framework
 
         private void CoreWindow_KeyDown(object sender, KeyEventArgs args)
         {
-            var xnaKey = KeyTranslate(args.VirtualKey);
+            var xnaKey = KeyTranslate(args.VirtualKey, args.KeyStatus);
 
             if (!_keys.Contains(xnaKey))
                 _keys.Add(xnaKey);

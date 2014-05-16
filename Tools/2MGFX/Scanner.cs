@@ -89,9 +89,9 @@ namespace TwoMGFX
             Patterns.Add(TokenType.Number, regex);
             Tokens.Add(TokenType.Number);
 
-            regex = new Regex(@"[\(<]\s*[A-Za-z_][A-Za-z0-9_]*\s*[>\)]", RegexOptions.Compiled);
-            Patterns.Add(TokenType.TextureName, regex);
-            Tokens.Add(TokenType.TextureName);
+            regex = new Regex(@"-|\+", RegexOptions.Compiled);
+            Patterns.Add(TokenType.Sign, regex);
+            Tokens.Add(TokenType.Sign);
 
             regex = new Regex(@"[A-Za-z_][A-Za-z0-9_]*", RegexOptions.Compiled);
             Patterns.Add(TokenType.Identifier, regex);
@@ -137,6 +137,14 @@ namespace TwoMGFX
             Patterns.Add(TokenType.CloseSquareBracket, regex);
             Tokens.Add(TokenType.CloseSquareBracket);
 
+            regex = new Regex(@"<", RegexOptions.Compiled);
+            Patterns.Add(TokenType.LessThan, regex);
+            Tokens.Add(TokenType.LessThan);
+
+            regex = new Regex(@">", RegexOptions.Compiled);
+            Patterns.Add(TokenType.GreaterThan, regex);
+            Tokens.Add(TokenType.GreaterThan);
+
             regex = new Regex(@"compile", RegexOptions.Compiled | RegexOptions.IgnoreCase);
             Patterns.Add(TokenType.Compile, regex);
             Tokens.Add(TokenType.Compile);
@@ -156,7 +164,7 @@ namespace TwoMGFX
 
         }
 
-        public void Init(string input, string fileName = "")
+        public void Init(string input, string fileName)
         {
             this.Input = input;
             StartPos = 0;
@@ -328,7 +336,7 @@ namespace TwoMGFX
             PixelShader= 20,
             Register= 21,
             Number  = 22,
-            TextureName= 23,
+            Sign    = 23,
             Identifier= 24,
             OpenBracket= 25,
             CloseBracket= 26,
@@ -340,10 +348,12 @@ namespace TwoMGFX
             CloseParenthesis= 32,
             OpenSquareBracket= 33,
             CloseSquareBracket= 34,
-            Compile = 35,
-            ShaderModel= 36,
-            Code    = 37,
-            EndOfFile= 38
+            LessThan= 35,
+            GreaterThan= 36,
+            Compile = 37,
+            ShaderModel= 38,
+            Code    = 39,
+            EndOfFile= 40
     }
 
     public class Token

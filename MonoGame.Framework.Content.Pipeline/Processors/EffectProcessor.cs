@@ -1,52 +1,21 @@
-﻿#region License
-/*
- Microsoft Public License (Ms-PL)
- MonoGame - Copyright © 2012 The MonoGame Team
- 
- All rights reserved.
- 
- This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
- accept the license, do not use the software.
- 
- 1. Definitions
- The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
- U.S. copyright law.
- 
- A "contribution" is the original software, or any additions or changes to the software.
- A "contributor" is any person that distributes its contribution under this license.
- "Licensed patents" are a contributor's patent claims that read directly on its contribution.
- 
- 2. Grant of Rights
- (A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
- each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
- (B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
- each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
- 
- 3. Conditions and Limitations
- (A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
- (B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
- your patent license from such contributor to the software ends automatically.
- (C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
- notices that are present in the software.
- (D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
- a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
- code form, you may only do so under a license that complies with this license.
- (E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
- or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
- permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
- purpose and non-infringement.
- */
-#endregion License
+﻿// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 using System;
+using System.IO;
 using Microsoft.Xna.Framework.Content.Pipeline.Graphics;
+using Microsoft.Xna.Framework.Graphics;
+#if WINDOWS
+using TwoMGFX;
+#endif
 
 namespace Microsoft.Xna.Framework.Content.Pipeline.Processors
 {
     /// <summary>
     /// Processes a string representation to a platform-specific compiled effect.
     /// </summary>
-    [ContentProcessorAttribute]
+    [ContentProcessor(DisplayName = "Effect - MonoGame")]
     public class EffectProcessor : ContentProcessor<EffectContent, CompiledEffectContent>
     {
         EffectProcessorDebugMode debugMode;
@@ -80,7 +49,123 @@ namespace Microsoft.Xna.Framework.Content.Pipeline.Processors
         /// <remarks>If you get an error during processing, compilation stops immediately. The effect processor displays an error message. Once you fix the current error, it is possible you may get more errors on subsequent compilation attempts.</remarks>
         public override CompiledEffectContent Process(EffectContent input, ContentProcessorContext context)
         {
+#if WINDOWS
+            var options = new Options();
+            options.SourceFile = input.Identity.SourceFilename;
+            options.DX11Profile =   context.TargetPlatform == TargetPlatform.Windows ||
+                                    context.TargetPlatform == TargetPlatform.WindowsPhone8 ||
+                                    context.TargetPlatform == TargetPlatform.WindowsStoreApp ||
+                                    context.TargetPlatform == TargetPlatform.Xbox360;
+            options.Debug = DebugMode == EffectProcessorDebugMode.Debug;
+            options.OutputFile = context.OutputFilename;
+
+            // Parse the MGFX file expanding includes, macros, and returning the techniques.
+            ShaderInfo shaderInfo;
+            try
+            {
+                shaderInfo = ShaderInfo.FromFile(options.SourceFile, options);
+                foreach (var dep in shaderInfo.Dependencies)
+                    context.AddDependency(dep);
+            }
+            catch (Exception ex)
+            {
+                // TODO: Extract good line numbers from mgfx parser!
+                throw new InvalidContentException(ex.Message, input.Identity, ex);
+            }
+
+            // Create the effect object.
+            DXEffectObject effect = null;
+            try
+            {
+                effect = DXEffectObject.FromShaderInfo(shaderInfo);
+            }
+            catch (Exception ex)
+            {
+                throw ProcessErrorsAndWarnings(ex.Message, input, context);
+            }
+
+            // Write out the effect to a runtime format.
+            CompiledEffectContent result;
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    using (var writer = new BinaryWriter(stream))
+                        effect.Write(writer, options);
+
+                    result = new CompiledEffectContent(stream.GetBuffer());
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidContentException("Failed to serialize the effect!", input.Identity, ex);
+            }
+
+            return result;
+#else
             throw new NotImplementedException();
+#endif
+        }
+
+        private static Exception ProcessErrorsAndWarnings(string errorsAndWarnings, EffectContent input, ContentProcessorContext context)
+        {
+            // Split the errors by lines.
+            var errors = errorsAndWarnings.Split('\n');
+
+            // Process each error line extracting the location and message information.
+            for (var i = 0; i < errors.Length; i++)
+            {
+                // Skip blank lines.
+                if (errors[i].StartsWith(Environment.NewLine))
+                    break;
+
+                // find some unique characters in the error string
+                var openIndex = errors[i].IndexOf('(');
+                var closeIndex = errors[i].IndexOf(')');
+
+                // can't process the message if it has no line counter
+                if (openIndex == -1 || closeIndex == -1)
+                    continue;
+
+                // find the error number, then move forward into the message
+                var errorIndex = errors[i].IndexOf('X', closeIndex);
+                if (errorIndex < 0)
+                    return new InvalidContentException(errors[i], input.Identity);
+
+                // trim out the data we need to feed the logger
+                var fileName = errors[i].Remove(openIndex);
+                var lineAndColumn = errors[i].Substring(openIndex + 1, closeIndex - openIndex - 1);
+                var description = errors[i].Substring(errorIndex);
+
+                // when the file name is not present, the error can be found in the root file
+                if (string.IsNullOrEmpty(fileName))
+                    fileName = input.Identity.SourceFilename;
+
+                // ensure that the file data points toward the correct file
+                var fileInfo = new FileInfo(fileName);
+                if (!fileInfo.Exists)
+                {
+                    var parentFile = new FileInfo(input.Identity.SourceFilename);
+                    fileInfo = new FileInfo(Path.Combine(parentFile.Directory.FullName, fileName));
+                }
+                fileName = fileInfo.FullName;
+
+                // construct the temporary content identity and file the error or warning
+                var identity = new ContentIdentity(fileName, input.Identity.SourceTool, lineAndColumn);
+                if (errors[i].Contains("warning"))
+                {
+                    description = "A warning was generated when compiling the effect.\n" + description;
+                    context.Logger.LogWarning(string.Empty, identity, description, string.Empty);
+                }
+                else if (errors[i].Contains("error"))
+                {
+                    description = "Unable to compile the effect.\n" + description;
+                    return new InvalidContentException(description, identity);
+                }
+            }
+
+            // if no exceptions were created in the above loop, generate a generic one here
+            return new InvalidContentException(errorsAndWarnings, input.Identity);
         }
     }
 }

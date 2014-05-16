@@ -108,26 +108,28 @@ namespace Microsoft.Xna.Framework
             //TODO: Fix this
             try
             {
-                if (!_exiting)
-                {
-                    _exiting = true;
-                    Game.DoExiting();
+				if (!_exiting)
+				{
+					_exiting = true;
+					AndroidGameActivity.Paused -= Activity_Paused;
+					AndroidGameActivity.Resumed -= Activity_Resumed;
+					Game.DoExiting();
                     Net.NetworkSession.Exit();
-                    Game.Activity.Finish();
-                    Window.Close();
-                }
+               	    Game.Activity.Finish();
+				    Window.Close();
+				}
             }
-            catch (Exception ex)
-            {
-                Log("Unable to exit app due to " + ex.Message);
-                Log(ex.ToString());
-                _exiting = false;
+            catch
+			{
+					Log("Unable to exit app due to " + ex.Message);
+					Log(ex.ToString());
+					_exiting = false;
             }
         }
 
         public override void RunLoop()
         {
-            throw new NotImplementedException();
+            throw new NotSupportedException("The Android platform does not support synchronous run loops");
         }
 
         public override void StartRunLoop()
@@ -206,22 +208,26 @@ namespace Microsoft.Xna.Framework
                 IsActive = true;
                 Window.Resume();
                 Sound.ResumeAll();
-                MediaPlayer.Resume();
+				if(_MediaPlayer_PrevState == MediaState.Playing && Game.Activity.AutoPauseAndResumeMediaPlayer)
+                	MediaPlayer.Resume();
 				if(!Window.IsFocused)
 		           Window.RequestFocus();
             }
         }
 
+		MediaState _MediaPlayer_PrevState = MediaState.Stopped;
         // EnterBackground
         void Activity_Paused(object sender, EventArgs e)
         {
             if (IsActive)
             {
                 IsActive = false;
+				_MediaPlayer_PrevState = MediaPlayer.State;
                 Window.Pause();
 				Window.ClearFocus();
                 Sound.PauseAll();
-                MediaPlayer.Pause();
+				if(Game.Activity.AutoPauseAndResumeMediaPlayer)
+                	MediaPlayer.Pause();
             }
         }
 

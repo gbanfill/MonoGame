@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using SharpDX.Direct3D;
+using TwoMGFX;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     internal partial class DXShaderData
     {
-        public static DXShaderData CreateHLSL(byte[] byteCode, bool isVertexShader, List<DXConstantBufferData> cbuffers, int sharedIndex, Dictionary<string, SamplerState> samplerStates, bool debug)
+        public static DXShaderData CreateHLSL(byte[] byteCode, bool isVertexShader, List<DXConstantBufferData> cbuffers, int sharedIndex, Dictionary<string, SamplerStateInfo> samplerStates, bool debug)
         {
             var dxshader = new DXShaderData();
             dxshader.IsVertexShader = isVertexShader;
@@ -52,16 +54,72 @@ namespace Microsoft.Xna.Framework.Graphics
                         var rdesc = refelect.GetResourceBindingDescription(i);
                         if (rdesc.Type == SharpDX.D3DCompiler.ShaderInputType.Texture)
                         {
-							SamplerState state = null;
-							samplerStates.TryGetValue(rdesc.Name, out state);
-                            samplers.Add(new Sampler
+                            var samplerName = rdesc.Name;
+
+                            var sampler = new Sampler
                             {
-                                index = rdesc.BindPoint,
-                                parameterName = rdesc.Name,
-								state = state,
-                                // TODO: Detect the sampler type for realz.
-                                type = MojoShader.MOJOSHADER_samplerType.MOJOSHADER_SAMPLER_2D
-                            });
+                                textureSlot = rdesc.BindPoint,
+                                samplerSlot = rdesc.BindPoint,
+                                parameterName = samplerName
+                            };
+                            
+                            SamplerStateInfo state;
+                            if (samplerStates.TryGetValue(samplerName, out state))
+                            {
+                                sampler.parameterName = state.TextureName ?? samplerName;
+                                sampler.state = state.State;
+                            }
+                            else
+                            {
+                                foreach (var s in samplerStates.Values)
+                                {
+                                    if (samplerName == s.TextureName)
+                                    {
+                                        sampler.state = s.State;
+                                        samplerName = s.Name;
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // Find sampler slot, which can be different from the texture slot.
+                            for (int j = 0; j < refelect.Description.BoundResources; j++)
+                            {
+                                var samplerrdesc = refelect.GetResourceBindingDescription(j);
+
+                                if (samplerrdesc.Type == SharpDX.D3DCompiler.ShaderInputType.Sampler && 
+                                    samplerrdesc.Name == samplerName)
+                                {
+                                    sampler.samplerSlot = samplerrdesc.BindPoint;
+                                    break;
+                                }
+                            }
+
+                            switch (rdesc.Dimension)
+                            {
+                                case ShaderResourceViewDimension.Texture1D:
+                                case ShaderResourceViewDimension.Texture1DArray:
+                                    sampler.type = MojoShader.MOJOSHADER_samplerType.MOJOSHADER_SAMPLER_1D;
+                                    break;
+
+                                case ShaderResourceViewDimension.Texture2D:
+                                case ShaderResourceViewDimension.Texture2DArray:
+                                case ShaderResourceViewDimension.Texture2DMultisampled:
+                                case ShaderResourceViewDimension.Texture2DMultisampledArray:
+                                    sampler.type = MojoShader.MOJOSHADER_samplerType.MOJOSHADER_SAMPLER_2D;
+                                    break;
+
+                                case ShaderResourceViewDimension.Texture3D:
+                                    sampler.type = MojoShader.MOJOSHADER_samplerType.MOJOSHADER_SAMPLER_VOLUME;
+                                    break;
+
+                                case ShaderResourceViewDimension.TextureCube:
+                                case ShaderResourceViewDimension.TextureCubeArray:
+                                    sampler.type = MojoShader.MOJOSHADER_samplerType.MOJOSHADER_SAMPLER_CUBE;
+                                    break;
+                            }
+
+                            samplers.Add(sampler);
                         }
                     }
                     dxshader._samplers = samplers.ToArray();

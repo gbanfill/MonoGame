@@ -131,8 +131,20 @@ namespace Microsoft.Xna.Framework.Graphics
                     element.SemanticName = "BLENDWEIGHT";
                     break;
 
+                case Graphics.VertexElementUsage.Binormal:
+                    element.SemanticName = "BINORMAL";
+                    break;
+
+                case Graphics.VertexElementUsage.Tangent:
+                    element.SemanticName = "TANGENT";
+                    break;
+
+                case Graphics.VertexElementUsage.PointSize:
+                    element.SemanticName = "PSIZE";
+                    break;
+
                 default:
-                    throw new NotImplementedException("Unknown vertex element usage!");
+                    throw new NotSupportedException("Unknown vertex element usage!");
             }
 
             element.SemanticIndex = _usageIndex;
@@ -188,7 +200,7 @@ namespace Microsoft.Xna.Framework.Graphics
                     break;
                 
                 default:
-                    throw new NotImplementedException("Unknown vertex element format!");
+                    throw new NotSupportedException("Unknown vertex element format!");
             }
 
             element.Slot = 0;

@@ -15,12 +15,20 @@ using Microsoft.Xna.Framework.Input.Touch;
 
 namespace Microsoft.Xna.Framework
 {
+	[CLSCompliant(false)]
     public class AndroidGameActivity : Activity
     {
         public static Game Game { get; set; }
 		
 		private OrientationListener o;		
 		private ScreenReceiver screenReceiver;
+
+		private bool _AutoPauseAndResumeMediaPlayer = true;
+		public bool AutoPauseAndResumeMediaPlayer
+		{
+			get{return _AutoPauseAndResumeMediaPlayer;}
+			set{_AutoPauseAndResumeMediaPlayer = value;}
+		}
 
 		/// <summary>
 		/// OnCreate called when the activity is launched from cold or after the app
@@ -80,12 +88,15 @@ namespace Microsoft.Xna.Framework
 		protected override void OnDestroy ()
 		{
             UnregisterReceiver(screenReceiver);
-            o.Disable();
-            o = null;
+
+            if (Game != null)
+                Game.Dispose();
+            Game = null;
 			base.OnDestroy ();
 		}
     }
-	
+
+	[CLSCompliant(false)]
 	public static class ActivityExtensions
     {
         public static ActivityAttribute GetActivityAttribute(this AndroidGameActivity obj)
