@@ -259,8 +259,6 @@ namespace Microsoft.Xna.Framework
             {
                 Android.Util.Log.Error("Error in swap buffers", ex.ToString());
             }
-
-            Android.Util.Log.Info("Monodroid", "AndroidGamePlatform.Present() called");
         }
     }
 }

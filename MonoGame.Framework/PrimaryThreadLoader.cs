@@ -64,8 +64,6 @@ namespace Microsoft.Xna.Framework
             
             if((DateTime.Now - _lastUpdate).Milliseconds < 250) return;
 
-            System.Diagnostics.Debug.WriteLine("PrimaryThreadLoader.DoLoads started. last update {0}. Now {1}", _lastUpdate.ToString("hh:mm:ss.fffff"), DateTime.Now.ToString("hh:mm:ss.fffff"));
-
             _lastUpdate = DateTime.Now;
             lock (ListLockObject)
             {                
