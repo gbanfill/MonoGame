@@ -172,8 +172,10 @@ namespace Microsoft.Xna.Framework
         {
             // DeviceResetting events
             _game.graphicsDeviceManager.OnDeviceResetting(EventArgs.Empty);
-            _game.GraphicsDevice.OnDeviceResetting();
-
+            if (_game.GraphicsDevice != null)
+            {
+                _game.GraphicsDevice.OnDeviceResetting();
+            }
             Android.Util.Log.Debug("MonoGame", "AndroidGameWindow.DestroyFrameBuffer");
 
             base.DestroyFrameBuffer();
@@ -185,14 +187,19 @@ namespace Microsoft.Xna.Framework
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
-            base.OnRenderFrame(e);
+            try
+            {
+                base.OnRenderFrame(e);
 
-            if (GraphicsContext == null || GraphicsContext.IsDisposed)
-                return;
+                if (GraphicsContext == null || GraphicsContext.IsDisposed)
+                    return;
 
-            if (!GraphicsContext.IsCurrent)
-                MakeCurrent();
-
+                if (!GraphicsContext.IsCurrent)
+                    MakeCurrent();
+            }
+            catch (Exception)
+            {
+            }
             Threading.Run();
         }
 
