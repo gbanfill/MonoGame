@@ -891,8 +891,48 @@ namespace Microsoft.Xna.Framework.Graphics
 #endif
         }
 
+		#if ANDROID
+		public static Bitmap RotateBitmap(Bitmap source, float angle)
+		{
+			Android.Graphics.Matrix matrix = new Android.Graphics.Matrix();
+			matrix.PostRotate(angle);
+			return Bitmap.CreateBitmap(source, 0, 0, source.Width, source.Height, matrix, true);
+		}
+		#endif
+
         public void SaveAsJpeg(Stream stream, int width, int height)
         {
+			#if ANDROID
+			int numPixels = this.width * this.height;
+			byte[] textureData = GetTextureData (0);
+
+			Java.Nio.ByteBuffer rawBuffer = Java.Nio.ByteBuffer.Allocate(textureData.Length);
+			rawBuffer.Order(Java.Nio.ByteOrder.NativeOrder());
+
+			rawBuffer.Put (textureData);
+			rawBuffer.Rewind ();
+
+			int[] pixelsBuffer = new int[this.width*this.height];
+			rawBuffer.AsIntBuffer().Get(pixelsBuffer);
+			rawBuffer.Dispose ();
+
+			for (int i = 0; i < numPixels; ++i) {
+				// The alpha and green channels' positions are preserved while the red and blue are swapped
+				pixelsBuffer[i] = (int)((pixelsBuffer[i] & 0xff00ff00)) | ((pixelsBuffer[i] & 0x000000ff) << 16) | ((pixelsBuffer[i] & 0x00ff0000) >> 16);
+			}
+
+			Bitmap bitmap = Bitmap.CreateBitmap (this.width, this.height, Bitmap.Config.Argb8888);
+			bitmap.SetPixels(pixelsBuffer, numPixels-width, -width, 0, 0, width, height);
+
+			if (bitmap != null)
+			{
+				Bitmap rotatedBitmap = RotateBitmap (bitmap, 180);
+				if (!rotatedBitmap.Compress (Bitmap.CompressFormat.Jpeg, 80, stream)) {
+					//logError
+				}
+			}
+			return;
+#endif
 #if WINDOWS_STOREAPP
             SaveAsImage(BitmapEncoder.JpegEncoderId, stream, width, height);
 #elif WINDOWS_PHONE
