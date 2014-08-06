@@ -892,10 +892,10 @@ namespace Microsoft.Xna.Framework.Graphics
         }
 
 		#if ANDROID
-		public static Bitmap RotateBitmap(Bitmap source, float angle)
+		public static Bitmap ScaleBitmap(Bitmap source, float xScale,float yScale)
 		{
 			Android.Graphics.Matrix matrix = new Android.Graphics.Matrix();
-			matrix.PostRotate(angle);
+			matrix.SetScale(xScale,yScale);
 			return Bitmap.CreateBitmap(source, 0, 0, source.Width, source.Height, matrix, true);
 		}
 		#endif
@@ -926,9 +926,10 @@ namespace Microsoft.Xna.Framework.Graphics
 
 			if (bitmap != null)
 			{
-				Bitmap rotatedBitmap = RotateBitmap (bitmap, 180);
+				Bitmap rotatedBitmap = ScaleBitmap (bitmap,1f,-1f);
 				if (!rotatedBitmap.Compress (Bitmap.CompressFormat.Jpeg, 80, stream)) {
 					//logError
+					Console.Out.WriteLine("Unable to compress Image!");
 				}
 			}
 			return;
