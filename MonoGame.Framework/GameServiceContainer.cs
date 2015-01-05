@@ -70,6 +70,11 @@ namespace Microsoft.Xna.Framework
             return null;
         }
 
+        public void Clear ()
+        {
+            services.Clear();
+        }
+
         public void RemoveService(Type type)
         {
             if (type == null)

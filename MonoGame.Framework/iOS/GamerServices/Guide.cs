@@ -64,6 +64,9 @@ change. To the extent permitted under your local laws, the contributors exclude
 the implied warranties of merchantability, fitness for a particular purpose and
 non-infringement.
 */
+using MonoTouch.CoreAnimation;
+
+
 #endregion License
 
 using System;
@@ -554,6 +557,47 @@ namespace Microsoft.Xna.Framework.GamerServices
 			    }
 			}
 		}
+
+        public static void AddSubview (UIView aView,CATransition animationTransition=null,bool animated =true)
+        {
+            UIApplication.SharedApplication.InvokeOnMainThread(delegate {
+
+                if(animated)
+                {
+                    CATransition transition;
+                    if(animationTransition ==null)
+                    {
+                        transition = new CATransition();
+                        transition.Duration = 0.2;
+                        transition.Type = CATransition.TransitionFade; //choose your animation
+                        transition.TimingFunction=CAMediaTimingFunction.FromName(CAMediaTimingFunction.EaseIn);
+                    }
+                    else
+                    {
+                        transition=animationTransition;
+                    }
+
+                    _gameViewController.View.Layer.AddAnimation(transition,null);
+                }
+                _gameViewController.View.Add(aView);
+
+            });
+        }
+
+        public static void RemoveView (UIView turbineGameUI, bool animated =true)
+        {
+            UIApplication.SharedApplication.InvokeOnMainThread(delegate {
+                if(animated)
+                {
+                    CATransition transition = new CATransition();
+                    transition.Duration = 0.2;
+                    transition.Type = CATransition.TransitionFade; //choose your animation
+                    _gameViewController.View.Layer.AddAnimation(transition,null);
+                }
+                turbineGameUI.RemoveFromSuperview();
+
+            });
+        }
 
         /// <summary>
         /// Displays the iOS matchmaker to the player.

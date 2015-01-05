@@ -136,7 +136,7 @@ namespace Microsoft.Xna.Framework
         /// </summary>
         public Game Game
         {
-            get; private set;
+            get;  set;
         }
 
         private bool _isActive;

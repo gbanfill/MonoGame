@@ -64,6 +64,9 @@ change. To the extent permitted under your local laws, the contributors exclude
 the implied warranties of merchantability, fitness for a particular purpose and
 non-infringement.
 */
+using MonoTouch.CoreGraphics;
+
+
 #endregion License
 
 using System;
@@ -89,16 +92,17 @@ namespace Microsoft.Xna.Framework
         private iOSGameViewController _viewController;
         private UIWindow _mainWindow;
         private List<NSObject> _applicationObservers;
-		private OpenALSoundController soundControllerInstance = null;
-        private CADisplayLink _displayLink;
+        private OpenALSoundController soundControllerInstance = null;
+        private CADisplayLink _caDisplayLink;
+        private bool _isExitPending;
 
-        public iOSGamePlatform(Game game) :
-            base(game)
+        public iOSGamePlatform(Game game)
+            : base(game)
         {
             game.Services.AddService(typeof(iOSGamePlatform), this);
 			
-			// Setup our OpenALSoundController to handle our SoundBuffer pools
-			soundControllerInstance = OpenALSoundController.GetInstance;
+            // Setup our OpenALSoundController to handle our SoundBuffer pools
+            soundControllerInstance = OpenALSoundController.GetInstance;
 			
             Directory.SetCurrentDirectory(NSBundle.MainBundle.ResourcePath);
 
@@ -107,41 +111,41 @@ namespace Microsoft.Xna.Framework
             UIApplication.SharedApplication.SetStatusBarHidden(true, UIStatusBarAnimation.Fade);
 
             // Create a full-screen window
-            _mainWindow = new UIWindow (UIScreen.MainScreen.Bounds);
-			//_mainWindow.AutoresizingMask = UIViewAutoresizing.FlexibleDimensions;
+            _mainWindow = new UIWindow(UIScreen.MainScreen.Bounds);
+            //_mainWindow.AutoresizingMask = UIViewAutoresizing.FlexibleDimensions;
 			
-            game.Services.AddService (typeof(UIWindow), _mainWindow);
+            game.Services.AddService(typeof(UIWindow), _mainWindow);
 
             _viewController = new iOSGameViewController(this);
-            game.Services.AddService (typeof(UIViewController), _viewController);
-            Window = new iOSGameWindow (_viewController);
+            game.Services.AddService(typeof(UIViewController), _viewController);
+            Window = new iOSGameWindow(_viewController);
 
             _mainWindow.RootViewController = _viewController;
-            _mainWindow.Add (_viewController.View);
+            _mainWindow.Add(_viewController.View);
 
             _viewController.InterfaceOrientationChanged += ViewController_InterfaceOrientationChanged;
 
             Guide.Initialise(game);
         }
 
-        public override void TargetElapsedTimeChanged ()
+        public override void TargetElapsedTimeChanged()
         {
             CreateDisplayLink();
         }
 
         private void CreateDisplayLink()
         {
-            if (_displayLink != null)
-                _displayLink.RemoveFromRunLoop(NSRunLoop.Main, NSRunLoop.NSDefaultRunLoopMode);
+            if (_caDisplayLink != null)
+                _caDisplayLink.RemoveFromRunLoop(NSRunLoop.Main, NSRunLoop.NSDefaultRunLoopMode);
 
-            _displayLink = UIScreen.MainScreen.CreateDisplayLink(_viewController.View as iOSGameView, new Selector("doTick"));
+            _caDisplayLink = UIScreen.MainScreen.CreateDisplayLink(_viewController.View as iOSGameView, new Selector("doTick"));
 
             // FrameInterval represents how many frames must pass before the selector
             // is called again. We calculate this by dividing our target elapsed time by
             // the duration of a frame on iOS (Which is 1/60.0f at the time of writing this).
-            _displayLink.FrameInterval = (int)Math.Round(60f * Game.TargetElapsedTime.TotalSeconds);
+            _caDisplayLink.FrameInterval = (int)Math.Round(60f * Game.TargetElapsedTime.TotalSeconds);
 
-            _displayLink.AddToRunLoop(NSRunLoop.Main, NSRunLoop.NSDefaultRunLoopMode);
+            _caDisplayLink.AddToRunLoop(NSRunLoop.Main, NSRunLoop.NSDefaultRunLoopMode);
         }
 
 
@@ -169,8 +173,8 @@ namespace Microsoft.Xna.Framework
             {
                 if (_viewController != null)
                 {
-                    _viewController.View.RemoveFromSuperview ();
-                    _viewController.RemoveFromParentViewController ();
+                    _viewController.View.RemoveFromSuperview();
+                    _viewController.RemoveFromParentViewController();
                     _viewController.Dispose();
                     _viewController = null;
                 }
@@ -185,7 +189,7 @@ namespace Microsoft.Xna.Framework
 
         public override void BeforeInitialize()
         {
-            base.BeforeInitialize ();
+            base.BeforeInitialize();
 
             _viewController.View.LayoutSubviews();
         }
@@ -208,6 +212,9 @@ namespace Microsoft.Xna.Framework
 
         internal void Tick()
         {
+            if (PerformPendingExit())
+                return;
+
             if (!Game.IsActive)
                 return;
 
@@ -220,16 +227,65 @@ namespace Microsoft.Xna.Framework
             //        point, it should be possible to pass Game.Tick
             //        directly to NSTimer.CreateRepeatingTimer.
             _viewController.View.MakeCurrent();
-            Game.Tick ();
+            Game.Tick();
 
-            if (!IsPlayingVideo)
-                _viewController.View.Present ();
+            PerformPendingExit();
+
+            if (!IsPlayingVideo && _viewController != null)
+                _viewController.View.Present();
+        }
+
+        private bool PerformPendingExit()
+        {
+            if (!_isExitPending)
+                return false;
+
+            _isExitPending = false;
+
+            if (_caDisplayLink != null)
+            {
+                _caDisplayLink.Invalidate();
+                _caDisplayLink.Dispose();
+                _caDisplayLink = null;
+            }
+
+            UIApplication.SharedApplication.SetStatusBarHidden(false, UIStatusBarAnimation.Fade);
+
+            if (_viewController != null)
+            {
+                _viewController.InterfaceOrientationChanged -= ViewController_InterfaceOrientationChanged;
+                _viewController.View.RemoveFromSuperview();
+                _viewController.View.Dispose();
+                _viewController.RemoveFromParentViewController();
+                //this might crash ventus?
+                _viewController.Dispose();
+                _viewController = null;
+            }
+
+            if (_mainWindow != null)
+            {
+                _mainWindow.RemoveFromSuperview();
+                _mainWindow.Dispose();
+                _mainWindow = null;
+            }
+
+            if (Window != null)
+            {
+                Window = null;
+            }
+
+            Net.NetworkSession.Exit();
+
+            StopObservingUIApplication();
+            RaiseAsyncRunLoopEnded();
+            //this.Game=null;
+            return true;
         }
 
         public override bool BeforeDraw(GameTime gameTime)
         {
-    		// Update our OpenAL sound buffer pools
-    		soundControllerInstance.Update();
+            // Update our OpenAL sound buffer pools
+            soundControllerInstance.Update();
 
             if (IsPlayingVideo)
                 return false;
@@ -258,6 +314,7 @@ namespace Microsoft.Xna.Framework
         public override void Exit()
         {
             // Do Nothing: iOS games do not "exit" or shut down.
+            _isExitPending = true;
         }
 
         private void BeginObservingUIApplication()
@@ -282,22 +339,28 @@ namespace Microsoft.Xna.Framework
                 Tuple.Create(
                     UIApplication.DidReceiveMemoryWarningNotification,
                     new Action<NSNotification>(Application_DidReceiveMemoryWarning))
-             };
+            };
 
             foreach (var entry in events)
                 _applicationObservers.Add(NSNotificationCenter.DefaultCenter.AddObserver(entry.Item1, entry.Item2));
+        }
+
+        private void StopObservingUIApplication()
+        {
+            NSNotificationCenter.DefaultCenter.RemoveObservers(_applicationObservers);
+            _applicationObservers.Clear();
         }
 
         #region Notification Handling
 
         private void Application_WillEnterForeground(NSNotification notification)
         {
-			// Already handled in Application_DidBecomeActive. See below for IsActive state change.	
+            // Already handled in Application_DidBecomeActive. See below for IsActive state change.	
         }
 
         private void Application_DidEnterBackground(NSNotification notification)
         {
-			// Already handled in Application_WillResignActive. See below for IsActive state change.
+            // Already handled in Application_WillResignActive. See below for IsActive state change.
         }
 
         private void Application_DidBecomeActive(NSNotification notification)
@@ -314,10 +377,10 @@ namespace Microsoft.Xna.Framework
         private void Application_WillTerminate(NSNotification notification)
         {
             // FIXME: Cleanly end the run loop.
-			if ( Game != null )
-			{
-				// TODO MonoGameGame.Terminate();
-			}
+            if (Game != null)
+            {
+                // TODO MonoGameGame.Terminate();
+            }
         }
 
         private void Application_DidReceiveMemoryWarning(NSNotification notification)
@@ -329,41 +392,41 @@ namespace Microsoft.Xna.Framework
 
         #endregion Notification Handling
 
-		private void ViewController_InterfaceOrientationChanged (object sender, EventArgs e)
-		{
-			var orientation = OrientationConverter.ToDisplayOrientation (
-				_viewController.InterfaceOrientation);
+        private void ViewController_InterfaceOrientationChanged(object sender, EventArgs e)
+        {
+            var orientation = OrientationConverter.ToDisplayOrientation(
+                                  _viewController.InterfaceOrientation);
 
-			// FIXME: The presentation parameters for the GraphicsDevice should
-			//        be managed by the GraphicsDevice itself.  Not by
-			//        iOSGamePlatform.
-			var gdm = (GraphicsDeviceManager) Game.Services.GetService (typeof (IGraphicsDeviceManager));
+            // FIXME: The presentation parameters for the GraphicsDevice should
+            //        be managed by the GraphicsDevice itself.  Not by
+            //        iOSGamePlatform.
+            var gdm = (GraphicsDeviceManager)Game.Services.GetService(typeof(IGraphicsDeviceManager));
 
             TouchPanel.DisplayOrientation = orientation;
 
-			if (gdm != null)
-			{	
+            if (gdm != null)
+            {	
 
-				var presentParams = gdm.GraphicsDevice.PresentationParameters;
-				presentParams.BackBufferWidth = gdm.PreferredBackBufferWidth;
-				presentParams.BackBufferHeight = gdm.PreferredBackBufferHeight;
+                var presentParams = gdm.GraphicsDevice.PresentationParameters;
+                presentParams.BackBufferWidth = gdm.PreferredBackBufferWidth;
+                presentParams.BackBufferHeight = gdm.PreferredBackBufferHeight;
 
-				presentParams.DisplayOrientation = orientation;
+                presentParams.DisplayOrientation = orientation;
 
                 // Recalculate our views.
                 ViewController.View.LayoutSubviews();
 				
                 gdm.ApplyChanges();
-			}
+            }
 			
-		}
+        }
 
-		public override void BeginScreenDeviceChange (bool willBeFullScreen)
-		{
-		}
+        public override void BeginScreenDeviceChange(bool willBeFullScreen)
+        {
+        }
 
-		public override void EndScreenDeviceChange (string screenDeviceName, int clientWidth,int clientHeight)
-		{
-		}
-	}
+        public override void EndScreenDeviceChange(string screenDeviceName, int clientWidth, int clientHeight)
+        {
+        }
+    }
 }

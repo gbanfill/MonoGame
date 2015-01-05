@@ -891,49 +891,8 @@ namespace Microsoft.Xna.Framework.Graphics
 #endif
         }
 
-		#if ANDROID
-		public static Bitmap ScaleBitmap(Bitmap source, float xScale,float yScale)
-		{
-			Android.Graphics.Matrix matrix = new Android.Graphics.Matrix();
-			matrix.SetScale(xScale,yScale);
-			return Bitmap.CreateBitmap(source, 0, 0, source.Width, source.Height, matrix, true);
-		}
-		#endif
-
         public void SaveAsJpeg(Stream stream, int width, int height)
         {
-			#if ANDROID
-			int numPixels = this.width * this.height;
-			byte[] textureData = GetTextureData (0);
-
-			Java.Nio.ByteBuffer rawBuffer = Java.Nio.ByteBuffer.Allocate(textureData.Length);
-			rawBuffer.Order(Java.Nio.ByteOrder.NativeOrder());
-
-			rawBuffer.Put (textureData);
-			rawBuffer.Rewind ();
-
-			int[] pixelsBuffer = new int[this.width*this.height];
-			rawBuffer.AsIntBuffer().Get(pixelsBuffer);
-			rawBuffer.Dispose ();
-
-			for (int i = 0; i < numPixels; ++i) {
-				// The alpha and green channels' positions are preserved while the red and blue are swapped
-				pixelsBuffer[i] = (int)((pixelsBuffer[i] & 0xff00ff00)) | ((pixelsBuffer[i] & 0x000000ff) << 16) | ((pixelsBuffer[i] & 0x00ff0000) >> 16);
-			}
-
-			Bitmap bitmap = Bitmap.CreateBitmap (this.width, this.height, Bitmap.Config.Argb8888);
-			bitmap.SetPixels(pixelsBuffer, numPixels-width, -width, 0, 0, width, height);
-
-			if (bitmap != null)
-			{
-				Bitmap rotatedBitmap = ScaleBitmap (bitmap,1f,-1f);
-				if (!rotatedBitmap.Compress (Bitmap.CompressFormat.Jpeg, 80, stream)) {
-					//logError
-					Console.Out.WriteLine("Unable to compress Image!");
-				}
-			}
-			return;
-#endif
 #if WINDOWS_STOREAPP
             SaveAsImage(BitmapEncoder.JpegEncoderId, stream, width, height);
 #elif WINDOWS_PHONE
@@ -956,6 +915,26 @@ namespace Microsoft.Xna.Framework.Graphics
             waitEvent.Wait();
 #elif MONOMAC
 			SaveAsImage(stream, width, height, ImageFormat.Jpeg);
+#elif IOS
+            int mByteWidth = width * 4;         // Assume 4 bytes/pixel for now
+            mByteWidth = (mByteWidth + 3) & ~3;    // Align to 4 bytes
+
+            CGImage imageRef = GenerateRGBImageFromBufferData (mByteWidth, width, height);
+
+            NSError err;
+
+            using (UIImage img = UIImage.FromImage(imageRef))
+            {
+                using (NSData imgData = img.AsJPEG())
+                {
+                    using(var imgJpeg = imgData.AsStream())
+                    {
+                        imgJpeg.CopyTo(stream);
+                    }
+                }
+                //img.AsPNG().Save(filename, true, out err);              
+                // TODO - check err
+            }
 #else
             throw new NotImplementedException();
 #endif
@@ -980,6 +959,109 @@ namespace Microsoft.Xna.Framework.Graphics
                 }
             }
         }
+        private byte[] GetImageData(int level)
+        {
+
+            int framebufferId = -1;
+            int renderBufferID = -1;
+
+            // create framebuffer
+            GL.GenFramebuffers(1, ref framebufferId);
+            GL.BindFramebuffer(All.Framebuffer, framebufferId);
+
+            //renderBufferIDs = new int[currentRenderTargets];
+            GL.GenRenderbuffers(1, ref renderBufferID);
+
+            // attach the texture to FBO color attachment point
+            GL.FramebufferTexture2D(All.Framebuffer, All.ColorAttachment0,
+                All.Texture2D, this.glTexture,0);
+
+            // create a renderbuffer object to store depth info
+            GL.BindRenderbuffer(All.Renderbuffer, renderBufferID);
+            GL.RenderbufferStorage(All.Renderbuffer, All.DepthComponent24Oes,
+                width, height);
+
+            // attach the renderbuffer to depth attachment point
+            GL.FramebufferRenderbuffer(All.Framebuffer, All.DepthAttachment,
+                All.Renderbuffer, renderBufferID);
+
+            All status = GL.CheckFramebufferStatus(All.Framebuffer);
+
+            if (status != All.FramebufferComplete)
+                throw new Exception("Error creating framebuffer: " + status);
+
+            byte[] imageInfo;
+            int sz = 0;
+
+            switch (this.Format) {
+            case SurfaceFormat.Color : //kTexture2DPixelFormat_RGBA8888
+            case SurfaceFormat.Dxt3 :
+
+                sz = 4;
+                imageInfo = new byte[(width * height) * sz];
+                break;
+            case SurfaceFormat.Bgra4444 : //kTexture2DPixelFormat_RGBA4444
+                sz = 2;
+                imageInfo = new byte[(width * height) * sz];
+
+                break;
+            case SurfaceFormat.Bgra5551 : //kTexture2DPixelFormat_RGB5A1
+                sz = 2;
+                imageInfo = new byte[(width * height) * sz];
+                break;
+            case SurfaceFormat.Alpha8 :  // kTexture2DPixelFormat_A8 
+                sz = 1;
+                imageInfo = new byte[(width * height) * sz];
+                break;
+            default:
+                throw new NotSupportedException ("Texture format");
+            }
+
+            GL.ReadPixels(0,0, width, height, All.Rgba, All.UnsignedByte, imageInfo);
+
+            // Detach the render buffers.
+            GL.FramebufferRenderbuffer(All.Framebuffer, All.DepthAttachment,
+                All.Renderbuffer, 0);
+            // delete the RBO's
+            GL.DeleteRenderbuffers(1,ref renderBufferID);
+            // delete the FBO
+            GL.DeleteFramebuffers(1, ref framebufferId);
+            // Set the frame buffer back to the system window buffer
+            GL.BindFramebuffer(All.Framebuffer, 0);          
+
+            return imageInfo;
+
+        }
+
+		#if IOS
+
+        private CGImage GenerateRGBImageFromBufferData (int mByteWidth, int mWidth, int mHeight)
+        {
+            CGColorSpace cgColorSpace = CGColorSpace.CreateDeviceRGB();
+
+            CGImageAlphaInfo alphaInfo = (CGImageAlphaInfo)((int)CGImageAlphaInfo.PremultipliedLast | (int)CGBitmapFlags.ByteOrderDefault);
+            CGBitmapContext bitmap=null;
+            byte[] mData = GetImageData(0);
+
+            try 
+            {
+                unsafe 
+                {
+                    fixed (byte* ptr = mData) 
+                    {
+                        bitmap = new CGBitmapContext ((IntPtr)ptr, mWidth, mHeight, 8, mByteWidth, cgColorSpace, alphaInfo);
+                    }
+                }
+            } 
+            catch 
+            {
+            }
+
+            CGImage image = bitmap.ToImage ();
+
+            return image;
+        }
+		#endif
 
         public void SaveAsPng(Stream stream, int width, int height)
         {
@@ -987,6 +1069,27 @@ namespace Microsoft.Xna.Framework.Graphics
             SaveAsImage(BitmapEncoder.PngEncoderId, stream, width, height);
 #elif MONOMAC
 			SaveAsImage(stream, width, height, ImageFormat.Png);
+
+#elif IOS
+            int mByteWidth = width * 4;         // Assume 4 bytes/pixel for now
+            mByteWidth = (mByteWidth + 3) & ~3;    // Align to 4 bytes
+
+            CGImage imageRef = GenerateRGBImageFromBufferData (mByteWidth, width, height);
+
+            NSError err;
+
+            using (UIImage img = UIImage.FromImage(imageRef))
+            {
+                using (NSData imgData = img.AsPNG())
+                {
+                    using(var imgPngStream = imgData.AsStream())
+                    {
+                        imgPngStream.CopyTo(stream);
+                    }
+                }
+                //img.AsPNG().Save(filename, true, out err);              
+                // TODO - check err
+            }
 #else
             // TODO: We need to find a simple stand alone
             // PNG encoder if we want to support this.

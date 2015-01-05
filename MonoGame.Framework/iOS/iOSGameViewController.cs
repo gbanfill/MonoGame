@@ -71,94 +71,108 @@ using System.Drawing;
 using MonoTouch.UIKit;
 using MonoTouch.Foundation;
 
-namespace Microsoft.Xna.Framework {
-	class iOSGameViewController : UIViewController {
-		iOSGamePlatform _platform;
+namespace Microsoft.Xna.Framework
+{
+    class iOSGameViewController : UIViewController
+    {
+        iOSGamePlatform _platform;
 
-		public iOSGameViewController (iOSGamePlatform platform)
-		{
-			if (platform == null)
-				throw new ArgumentNullException ("platform");
-			_platform = platform;
-			SupportedOrientations = DisplayOrientation.Default;
-		}
+        public iOSGameViewController(iOSGamePlatform platform)
+        {
+            if (platform == null)
+                throw new ArgumentNullException("platform");
+            _platform = platform;
+            SupportedOrientations = DisplayOrientation.Default;
+        }
 
-		public event EventHandler<EventArgs> InterfaceOrientationChanged;
+        public event EventHandler<EventArgs> InterfaceOrientationChanged;
 
-		public DisplayOrientation SupportedOrientations { get; set; }
+        public DisplayOrientation SupportedOrientations { get; set; }
 
-		public override void LoadView ()
-		{
-			RectangleF frame;
-			if (ParentViewController != null && ParentViewController.View != null) {
-				frame = new RectangleF(PointF.Empty, ParentViewController.View.Frame.Size);
-			} else {
-				UIScreen screen = UIScreen.MainScreen;
-				if (InterfaceOrientation == UIInterfaceOrientation.LandscapeLeft ||
-				    InterfaceOrientation == UIInterfaceOrientation.LandscapeRight) {
-					frame = new RectangleF(0, 0, screen.Bounds.Height, screen.Bounds.Width);
-				} else {
-					frame = new RectangleF(0, 0, screen.Bounds.Width, screen.Bounds.Height);
-				}
-			}
+        public override void LoadView()
+        {
+            RectangleF frame;
+            if (ParentViewController != null && ParentViewController.View != null)
+            {
+                frame = new RectangleF(PointF.Empty, ParentViewController.View.Frame.Size);
+            }
+            else
+            {
+                UIScreen screen = UIScreen.MainScreen;
 
-			base.View = new iOSGameView (_platform, frame);
-		}
+                if (InterfaceOrientation == UIInterfaceOrientation.LandscapeLeft || InterfaceOrientation == UIInterfaceOrientation.LandscapeRight)
+                {
+                    frame = new RectangleF(0, 0, Math.Max(screen.Bounds.Width, screen.Bounds.Height), Math.Min(screen.Bounds.Width, screen.Bounds.Height));
+                }
+                else
+                {
+                    frame = new RectangleF(0, 0, screen.Bounds.Width, screen.Bounds.Height);
+                }
+            }
 
-		public new iOSGameView View {
-			get { return (iOSGameView) base.View; }
-		}
+            base.View = new iOSGameView(_platform, frame);
+       
+        }
+
+        public new iOSGameView View
+        {
+            get { return (iOSGameView)base.View; }
+        }
 
         #region Autorotation for iOS 5 or older
+
         [Obsolete]
-		public override bool ShouldAutorotateToInterfaceOrientation (UIInterfaceOrientation toInterfaceOrientation)
-		{
-            DisplayOrientation supportedOrientations = OrientationConverter.Normalize (SupportedOrientations);
-			var toOrientation = OrientationConverter.ToDisplayOrientation (toInterfaceOrientation);
-			return (toOrientation & supportedOrientations) == toOrientation;
-		}
+        public override bool ShouldAutorotateToInterfaceOrientation(UIInterfaceOrientation toInterfaceOrientation)
+        {
+            DisplayOrientation supportedOrientations = OrientationConverter.Normalize(SupportedOrientations);
+            var toOrientation = OrientationConverter.ToDisplayOrientation(toInterfaceOrientation);
+            return (toOrientation & supportedOrientations) == toOrientation;
+        }
+
         #endregion
 
         #region Autorotation for iOS 6 or newer
-        public override UIInterfaceOrientationMask GetSupportedInterfaceOrientations ()
+
+        public override UIInterfaceOrientationMask GetSupportedInterfaceOrientations()
         {
             return OrientationConverter.ToUIInterfaceOrientationMask(this.SupportedOrientations);
         }
-        
-        public override bool ShouldAutorotate ()
+
+        public override bool ShouldAutorotate()
         {
-            return _platform.Game.Initialized;
+            return true;
         }
+
         #endregion
 
-		public override void DidRotate (UIInterfaceOrientation fromInterfaceOrientation)
-		{
-			base.DidRotate (fromInterfaceOrientation);
+        public override void DidRotate(UIInterfaceOrientation fromInterfaceOrientation)
+        {
+            base.DidRotate(fromInterfaceOrientation);
 
-			var handler = InterfaceOrientationChanged;
-			if (handler != null)
-				handler (this, EventArgs.Empty);
-        }       
-		
-		public override void TouchesBegan (NSSet touches, UIEvent evt)
-		{
-			base.TouchesBegan (touches, evt);
-		}
+            var handler = InterfaceOrientationChanged;
+            if (handler != null)
+                handler(this, EventArgs.Empty);
+        }
 
-		public override void TouchesEnded (NSSet touches, UIEvent evt)
-		{
-			base.TouchesEnded (touches, evt);
+        public override void TouchesBegan(NSSet touches, UIEvent evt)
+        {
+            base.TouchesBegan(touches, evt);
+        }
+
+        public override void TouchesEnded(NSSet touches, UIEvent evt)
+        {
+            base.TouchesEnded(touches, evt);
 			
-		}
+        }
 
-		public override void TouchesMoved (NSSet touches, UIEvent evt)
-		{
-			base.TouchesMoved (touches, evt);
-		}
+        public override void TouchesMoved(NSSet touches, UIEvent evt)
+        {
+            base.TouchesMoved(touches, evt);
+        }
 
-		public override void TouchesCancelled (NSSet touches, UIEvent evt)
-		{
-			base.TouchesCancelled (touches, evt);
-		}
-	}
+        public override void TouchesCancelled(NSSet touches, UIEvent evt)
+        {
+            base.TouchesCancelled(touches, evt);
+        }
+    }
 }

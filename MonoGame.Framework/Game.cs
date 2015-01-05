@@ -205,6 +205,10 @@ namespace Microsoft.Xna.Framework
                         if (disposable != null)
                             disposable.Dispose();
                     }
+
+                    _components.Clear ();
+                    _components.ComponentAdded -= Components_ComponentAdded;
+                    _components.ComponentRemoved -= Components_ComponentRemoved;
                     _components = null;
 
                     if (Content != null)
@@ -229,6 +233,8 @@ namespace Microsoft.Xna.Framework
 #endif
                         Platform.Dispose();
                         Platform = null;
+                        _services.Clear();
+                        _instance = null;
                     }
 
                     Effect.FlushCache();
@@ -564,8 +570,6 @@ namespace Microsoft.Xna.Framework
                 _gameTime.ElapsedGameTime = _accumulatedElapsedTime;
                 _gameTime.TotalGameTime += _accumulatedElapsedTime;
                 _accumulatedElapsedTime = TimeSpan.Zero;
-                // Always set the RunningSlowly flag to false here when we are in fast-as-possible mode.
-                _gameTime.IsRunningSlowly = false;
 
                 DoUpdate(_gameTime);
             }
