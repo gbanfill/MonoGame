@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
+    <metadata>
+        <id>Linknode.MonoGame</id>
+        <version>3.2</version>
+        <title>Linknode.MonoGame</title>
+        <authors>George Banfill</authors>
+        <owners>linknode</owners>
+        <licenseUrl>http://opensource.org/licenses/MS-PL</licenseUrl>
+        <projectUrl>http://monogame.net/</projectUrl>
+        <iconUrl>http://monogame.net/themes/_bartik/css/logo.png</iconUrl>
+        <requireLicenseAcceptance>false</requireLicenseAcceptance>
+        <description>MonoGame is an open source implementation of the Microsoft XNA 4.x Framework.
+      The goal is to make it easy for XNA developers to create cross-platform games with extremely high code reuse. We currently support iOS, Android, Windows (both OpenGL and DirectX), Mac OS X, Linux, Windows 8 Store, Windows Phone 8, PlayStation Mobile, and the OUYA console.</description>
+        <summary>MonoGame is an open source cross platform implementation of Microsoft's XNA 4.x Framework</summary>
+        <releaseNotes>Updated dev release - 07 January 2014 - inc Windows GL build fix</releaseNotes>
+        <copyright>Copyright  2015</copyright>
+        <language>en-US</language>
+    </metadata>
+    <files>
+	<!-- Android -->
+        <file src="..\MonoGame.Framework\Bin\Android\Release\Lidgren.Network.dll" target="build\MonoAndroid\Lidgren.Network.dll" />
+        <file src="..\MonoGame.Framework\Bin\Android\Release\MonoGame.Framework.dll" target="build\MonoAndroid\MonoGame.Framework.dll" />
+		
+	<!-- iOS -->
+        <file src="..\MonoGame.Framework\Bin\iPhoneSimulator\Release\Lidgren.Network.dll" target="build\MonoTouch\Lidgren.Network.dll" />
+        <file src="..\MonoGame.Framework\Bin\iPhoneSimulator\Release\MonoGame.Framework.dll" target="build\MonoTouch\MonoGame.Framework.dll" />
+		
+    </files>
+</package>
