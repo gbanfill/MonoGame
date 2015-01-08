@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/10/nuspec.xsd">
     <metadata>
         <id>Linknode.MonoGame</id>
-        <version>$version$</version>
+        <version>3.2</version>
         <title>Linknode.MonoGame</title>
         <authors>George Banfill</authors>
         <owners>linknode</owners>
