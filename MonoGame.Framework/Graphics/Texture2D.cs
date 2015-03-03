@@ -935,11 +935,50 @@ namespace Microsoft.Xna.Framework.Graphics
                 //img.AsPNG().Save(filename, true, out err);              
                 // TODO - check err
             }
+#elif ANDROID
+			int numPixels = this.width * this.height;
+			byte[] textureData = GetTextureData (0);
+
+			Java.Nio.ByteBuffer rawBuffer = Java.Nio.ByteBuffer.Allocate(textureData.Length);
+			rawBuffer.Order(Java.Nio.ByteOrder.NativeOrder());
+
+			rawBuffer.Put (textureData);
+			rawBuffer.Rewind ();
+
+			int[] pixelsBuffer = new int[this.width*this.height];
+			rawBuffer.AsIntBuffer().Get(pixelsBuffer);
+			rawBuffer.Dispose ();
+
+			for (int i = 0; i < numPixels; ++i) {
+				// The alpha and green channels' positions are preserved while the red and blue are swapped
+				pixelsBuffer[i] = (int)((pixelsBuffer[i] & 0xff00ff00)) | ((pixelsBuffer[i] & 0x000000ff) << 16) | ((pixelsBuffer[i] & 0x00ff0000) >> 16);
+			}
+
+			Bitmap bitmap = Bitmap.CreateBitmap (this.width, this.height, Bitmap.Config.Argb8888);
+			bitmap.SetPixels(pixelsBuffer, numPixels-width, -width, 0, 0, width, height);
+
+			if (bitmap != null)
+			{
+				Bitmap rotatedBitmap = ScaleBitmap (bitmap,1f,-1f);
+				if (!rotatedBitmap.Compress (Bitmap.CompressFormat.Jpeg, 80, stream)) {
+				//logError
+					Console.Out.WriteLine("Unable to compress Image!");
+				}
+			}
+
 #else
             throw new NotImplementedException();
 #endif
         }
 
+		#if ANDROID
+		private static Bitmap ScaleBitmap(Bitmap source, float xScale,float yScale)
+		{
+			Android.Graphics.Matrix matrix = new Android.Graphics.Matrix();
+			matrix.SetScale(xScale,yScale);
+			return Bitmap.CreateBitmap(source, 0, 0, source.Width, source.Height, matrix, true);
+		}
+		#endif
         //Converts Pixel Data from BGRA to RGBA
         private static void ConvertToRGBA(int pixelHeight, int pixelWidth, byte[] pixels)
         {
