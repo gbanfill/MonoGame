@@ -24,8 +24,8 @@
 		
 	<!-- iOS -->
 	<!-- Note this will only work on the buildserver checkout. We should look at merging Rufus's ios64 bit changes into the one branch -->
-       <file src="../RM/MonoGame.Framework/Bin/iOS/iPhoneSimulator/Release/Lidgren.Network.dll" target="lib\MonoTouch\Lidgren.Network.dll" />
-       <file src="../RM/MonoGame.Framework/Bin/iOS/iPhoneSimulator/Release/MonoGame.Framework.dll" target="lib\MonoTouch\MonoGame.Framework.dll" />
+       <file src="../RM/MonoGame.Framework/Bin/iOS/iPhone/Release/Lidgren.Network.dll" target="lib\MonoTouch\Lidgren.Network.dll" />
+       <file src="../RM/MonoGame.Framework/Bin/iOS/iPhone/Release/MonoGame.Framework.dll" target="lib\MonoTouch\MonoGame.Framework.dll" />
 		
     </files>
 </package>
