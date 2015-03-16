@@ -68,10 +68,10 @@ namespace Microsoft.Xna.Framework
             base.OnPause();
             if (Paused != null)
                 Paused(this, EventArgs.Empty);
-
         }
 
         public static event EventHandler Resumed;
+        
         protected override void OnResume()
         {
             base.OnResume();
@@ -82,7 +82,7 @@ namespace Microsoft.Xna.Framework
             if (deviceManager == null)
                 return;
             (deviceManager as GraphicsDeviceManager).ForceSetFullScreen();
-            Game.Window.RequestFocus();
+            //Game.Window.RequestFocus();
         }
 
 		protected override void OnDestroy ()
