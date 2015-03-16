@@ -177,7 +177,8 @@ namespace Microsoft.Xna.Framework
         public override bool BeforeRun()
         {
             // Run it as fast as we can to allow for more response on threaded GPU resource creation
-            Window.Run();
+            // removing this to match monogame release spec
+            //Window.Run();
 
             return false;
         }
