@@ -76,6 +76,9 @@ namespace Microsoft.Xna.Framework
         private bool _isResuming;
         internal TouchPanelState TouchPanelState;
 
+        private Context contextStore = null;
+
+
         public bool TouchEnabled
         {
             get { return _touchManager.Enabled; }
@@ -89,6 +92,7 @@ namespace Microsoft.Xna.Framework
 
         public AndroidGameWindow(Context context, Game game) : base(context)
         {
+            contextStore = context;
             _game = game;
             TouchPanelState = new TouchPanelState(this);
             Initialize();
@@ -108,11 +112,60 @@ namespace Microsoft.Xna.Framework
 	        GamePad.Initialize();
 #endif
         }
-		
+
+        public override void Resume()
+        {
+            if (!ScreenReceiver.ScreenLocked && Game.Instance.Platform.IsActive)
+            {
+                base.Resume();
+            }
+        }
+
+
+        public string detectGPU()
+        {
+            return GL.GetString(All.Renderer);
+        }
+
+
+        protected override void OnContextLost(EventArgs e)
+        {
+            base.OnContextLost(e);
+            // OnContextLost is called when the underlying OpenGL context is destroyed
+            // this usually happens on older devices when other opengl apps are run 
+            // or the lock screen is enabled. Modern devices can preserve the opengl 
+            // context along with all the textures and shaders it has attached.
+            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView Context Lost");
+
+            // DeviceResetting events
+            _game.graphicsDeviceManager.OnDeviceResetting(EventArgs.Empty);
+            if (_game.GraphicsDevice != null)
+            {
+                _game.GraphicsDevice.OnDeviceResetting();
+            }
+            _contextWasLost = true;
+        }
+
+        protected override void OnContextSet(EventArgs e)
+        {
+            base.OnContextSet(e);
+            Android.Util.Log.Debug("MonoGame", "MonoGameAndroidGameView Context Set");
+
+            if (_contextWasLost)
+            {
+                _contextWasLost = false;
+            }
+
+            MakeCurrent();
+
+        }
+
+
 		protected override void OnLoad (EventArgs e)
 		{
 			base.OnLoad (e);			
 			MakeCurrent();
+            this.Run(100);
 		}
 
         public override bool OnKeyDown(Keycode keyCode, KeyEvent e)
@@ -214,9 +267,15 @@ namespace Microsoft.Xna.Framework
 			{
 				throw new NotSupportedException("Could not create OpenGLES 2.0 frame buffer");
 		    }
-            if (_game.GraphicsDevice != null && _contextWasLost)
+            if (_game.GraphicsDevice != null )//&& _contextWasLost)
             {
                 _game.GraphicsDevice.Initialize();
+
+                if (_contextWasLost)
+                {
+                    // would like to replace the context with the stored context to see what would happen, however it is read only hence cannot without major alteration to the codebase
+                    //this.Context = new conte
+                }
 
                 _isResuming = true;
                 if (_resumer != null)
@@ -264,47 +323,74 @@ namespace Microsoft.Xna.Framework
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            base.OnRenderFrame(e);
             try
             {
-                base.OnRenderFrame(e);
+                if (_game.Platform.IsActive)
+                {
+                    Viewport viewport = _game.GraphicsDevice.Viewport;
 
+                    GameTime now = new GameTime(TimeSpan.Parse(DateTime.Now.Ticks.ToString()), TimeSpan.Parse(DateTime.Now.Ticks.ToString() ) );
+
+
+                    if (ScreenReceiver.ScreenLocked)
+                    {
+                        _game.GraphicsDevice.Clear(Color.Azure);
+                    }
+                    else
+                    {
+                        _game.Platform.Game.DoDraw(new GameTime(TimeSpan.Parse("40"), TimeSpan.Parse("80") ) );
+                    }
+                    SwapBuffers();
+                }
+                /*
                 if (GraphicsContext == null || GraphicsContext.IsDisposed)
                     return;
 
                 if (!GraphicsContext.IsCurrent)
                     MakeCurrent();
+                 */
             }
             catch (Exception)
             {
             }
-            Threading.Run();
+            //Threading.Run();
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
 
-            if (!GraphicsContext.IsCurrent)
-                MakeCurrent();
+            //if (!GraphicsContext.IsCurrent)
+            //    MakeCurrent();
 
-            Threading.Run();
-
-            if (_game != null)
+            if (clientBounds.Width != this.Size.Width   ||  clientBounds.Height != this.Size.Height)
             {
-                if (!_isResuming && _game.Platform.IsActive && !ScreenReceiver.ScreenLocked) //Only call draw if an update has occured
-				{
-					_game.Tick();
-				}
-				else if (_game.GraphicsDevice != null)
-				{
-					_game.GraphicsDevice.Clear(Color.Black);
-                    if (_isResuming && _resumer != null)
-                    {
-                        _resumer.Draw();
-                    }
-					_game.Platform.Present();
-				}
+                clientBounds = new Rectangle(0, 0, this.Size.Width, this.Size.Height);
             }
+
+            if (_game.Platform.IsActive && !ScreenReceiver.ScreenLocked)
+            {
+                Threading.Run();
+
+                if (_game != null)
+                {
+                    if (!_isResuming && _game.Platform.IsActive && !ScreenReceiver.ScreenLocked) //Only call draw if an update has occured
+                    {
+                        _game.Tick();
+                    }
+                    else if (_game.GraphicsDevice != null)
+                    {
+                        _game.GraphicsDevice.Clear(Color.Black);
+                        if (_isResuming && _resumer != null)
+                        {
+                            _resumer.Draw();
+                        }
+                        _game.Platform.Present();
+                    }
+                }
+            }
+            
         }
 		
 		#endregion
@@ -561,4 +647,3 @@ namespace Microsoft.Xna.Framework
         }
     }
 }
-
