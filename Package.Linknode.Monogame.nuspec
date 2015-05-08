@@ -19,8 +19,8 @@
     </metadata>
     <files>
 	<!-- Android -->
-        <file src="GB/MonoGame.Framework/Bin/Android/Release/Lidgren.Network.dll" target="lib\MonoAndroid\Lidgren.Network.dll" />
-        <file src="GB/MonoGame.Framework/Bin/Android/Release/MonoGame.Framework.dll" target="lib\MonoAndroid\MonoGame.Framework.dll" />
+        <file src="Lidgren.Network.dll" target="lib\MonoAndroid\Lidgren.Network.dll" />
+        <file src="MonoGame.Framework.dll" target="lib\MonoAndroid\MonoGame.Framework.dll" />
 		
 	<!-- iOS -->
 	<!-- Note this will only work on the buildserver checkout. We should look at merging Rufus's ios64 bit changes into the one branch -->
