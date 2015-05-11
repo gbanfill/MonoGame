@@ -326,6 +326,12 @@ namespace Microsoft.Xna.Framework
             base.OnRenderFrame(e);
             try
             {
+                if (GraphicsContext == null || GraphicsContext.IsDisposed)
+                    return;
+
+                if (!GraphicsContext.IsCurrent)
+                    MakeCurrent();
+
                 if (_game.Platform.IsActive)
                 {
                     Viewport viewport = _game.GraphicsDevice.Viewport;
@@ -343,26 +349,20 @@ namespace Microsoft.Xna.Framework
                     }
                     SwapBuffers();
                 }
-                /*
-                if (GraphicsContext == null || GraphicsContext.IsDisposed)
-                    return;
-
-                if (!GraphicsContext.IsCurrent)
-                    MakeCurrent();
-                 */
+             
             }
             catch (Exception)
             {
             }
-            //Threading.Run();
+            Threading.Run();
         }
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             base.OnUpdateFrame(e);
 
-            //if (!GraphicsContext.IsCurrent)
-            //    MakeCurrent();
+            if (!GraphicsContext.IsCurrent)
+                MakeCurrent();
 
             if (clientBounds.Width != this.Size.Width   ||  clientBounds.Height != this.Size.Height)
             {
