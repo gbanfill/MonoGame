@@ -64,16 +64,19 @@ change. To the extent permitted under your local laws, the contributors exclude
 the implied warranties of merchantability, fitness for a particular purpose and
 non-infringement.
 */
+
+
 #endregion License
 
 using System;
 using System.Drawing;
 
-using MonoTouch.CoreAnimation;
-using MonoTouch.Foundation;
-using MonoTouch.ObjCRuntime;
-using MonoTouch.OpenGLES;
-using MonoTouch.UIKit;
+using CoreAnimation;
+using Foundation;
+using ObjCRuntime;
+using OpenGLES;
+using UIKit;
+using CoreGraphics;
 
 using OpenTK.Graphics;
 using OpenTK.Graphics.ES20;
@@ -82,166 +85,117 @@ using OpenTK.Platform.iPhoneOS;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input.Touch;
 
-using All = OpenTK.Graphics.ES20.All;
-
-namespace Microsoft.Xna.Framework
-{
-
-    public static class GraphicsOverrideMode
-    {
-        public static GraphicsOverrideSettings GraphicsOverrideSettings;
-    }
-
-    public class GraphicsOverrideSettings
-    {
-        public GraphicsOverrideSettings(bool opaque, bool retainedBacking, NSString colorFormat)
-        {
-            Opaque = opaque;
-            RetainedBacking = retainedBacking;
-            STREAGLColorFormat = colorFormat;
-        }
-
-        public GraphicsOverrideSettings()
-        {
-            Opaque = false;
-            RetainedBacking = true;
-            STREAGLColorFormat = EAGLColorFormat.RGBA8;
-        }
-
-        public bool Opaque { get; set; }
-
-        public bool RetainedBacking { get; set; }
-
-        public NSString STREAGLColorFormat { get; set; }
-    }
+namespace Microsoft.Xna.Framework {
 
     [Register("iOSGameView")]
-    partial class iOSGameView : UIView
-    {
-        private iOSGamePlatform _platform;
-        private int _colorbuffer;
-        private int _depthbuffer;
-        private int _framebuffer;
+	partial class iOSGameView : UIView {
+		private readonly iOSGamePlatform _platform;
+		private int _colorbuffer;
+		private int _depthbuffer;
+		private int _framebuffer;
 
-        #region Construction/Destruction
+		#region Construction/Destruction
+		public iOSGameView (iOSGamePlatform platform, CGRect frame)
+			: base(frame)
+		{
+			if (platform == null)
+				throw new ArgumentNullException ("platform");
+			_platform = platform;
+			Initialize ();
+		}
 
-        public iOSGameView(iOSGamePlatform platform, RectangleF frame)
-            : base(frame)
-        {
-            if (platform == null)
-                throw new ArgumentNullException("platform");
-            _platform = platform;
-            Initialize();
-        }
+		private void Initialize ()
+		{
+			MultipleTouchEnabled = true;
+			Opaque = true;
+		}
 
-        private void Initialize()
-        {
-            MultipleTouchEnabled = true;
-            Opaque = true;
-        }
+		protected override void Dispose (bool disposing)
+		{
+			if (disposing) {
+				if (__renderbuffergraphicsContext != null)
+					DestroyContext();
+			}
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (__renderbuffergraphicsContext != null)
-                    DestroyContext();
-            }
+			base.Dispose (disposing);
+			_isDisposed = true;
+		}
 
-            base.Dispose(disposing);
-            _glapi = null;
-            _platform = null;
-            _isDisposed = true;
-        }
+		#endregion Construction/Destruction
 
-        #endregion Construction/Destruction
+		#region Properties
 
-        #region Properties
+		private bool _isDisposed;
 
-        private bool _isDisposed;
+		public bool IsDisposed {
+			get { return _isDisposed; }
+		}
 
-        public bool IsDisposed
-        {
-            get { return _isDisposed; }
-        }
+		#endregion Properties
 
-        #endregion Properties
+		[Export ("layerClass")]
+		public static Class GetLayerClass ()
+		{
+			return new Class (typeof (CAEAGLLayer));
+		}
 
-        [Export("layerClass")]
-        public static Class GetLayerClass()
-        {
-            return new Class(typeof(CAEAGLLayer));
-        }
+		public override bool CanBecomeFirstResponder {
+			get { return true; }
+		}
 
-        public override bool CanBecomeFirstResponder
-        {
-            get { return true; }
-        }
+		private new CAEAGLLayer Layer {
+			get { return base.Layer as CAEAGLLayer; }
+		}
 
-        private new CAEAGLLayer Layer
-        {
-            get { return base.Layer as CAEAGLLayer; }
-        }
+		// FIXME: Someday, hopefully it will be possible to move
+		//        GraphicsContext into an iOS-specific GraphicsDevice.
+		//        Some level of cooperation with the UIView/Layer will
+		//        probably always be necessary, unfortunately.
+		private GraphicsContext __renderbuffergraphicsContext;
+		private IOpenGLApi _glapi;
+		private void CreateContext ()
+		{
+			AssertNotDisposed ();
 
-        // FIXME: Someday, hopefully it will be possible to move
-        //        GraphicsContext into an iOS-specific GraphicsDevice.
-        //        Some level of cooperation with the UIView/Layer will
-        //        probably always be necessary, unfortunately.
-        private GraphicsContext __renderbuffergraphicsContext;
-        private IOpenGLApi _glapi;
+            // RetainedBacking controls if the content of the colorbuffer should be preserved after being displayed
+            // This is the XNA equivalent to set PreserveContent when initializing the GraphicsDevice
+            // (should be false by default for better performance)
+			Layer.DrawableProperties = NSDictionary.FromObjectsAndKeys (
+				new NSObject [] {
+					NSNumber.FromBoolean (false), 
+					EAGLColorFormat.RGBA8
+				},
+				new NSObject [] {
+					EAGLDrawableProperty.RetainedBacking,
+					EAGLDrawableProperty.ColorFormat
+				});
 
-        private void CreateContext()
-        {
-            AssertNotDisposed();
+			Layer.ContentsScale = Window.Screen.Scale;
 
-            if (GraphicsOverrideMode.GraphicsOverrideSettings == null)
-            {
-                GraphicsOverrideMode.GraphicsOverrideSettings = new GraphicsOverrideSettings();
-            }
+			//var strVersion = OpenTK.Graphics.ES11.GL.GetString (OpenTK.Graphics.ES11.All.Version);
+			//strVersion = OpenTK.Graphics.ES20.GL.GetString (OpenTK.Graphics.ES20.All.Version);
+			//var version = Version.Parse (strVersion);
 
-            Layer.DrawableProperties = NSDictionary.FromObjectsAndKeys(
-                new NSObject []
-                {
-                    NSNumber.FromBoolean(GraphicsOverrideMode.GraphicsOverrideSettings.RetainedBacking),
-                    GraphicsOverrideMode.GraphicsOverrideSettings.STREAGLColorFormat
-                },
-                new NSObject []
-                {
-                    EAGLDrawableProperty.RetainedBacking,
-                    EAGLDrawableProperty.ColorFormat
-                });
+			try {
+				__renderbuffergraphicsContext = new GraphicsContext (null, null, 2, 0, GraphicsContextFlags.Embedded);
+				_glapi = new Gles20Api ();
+			} catch {
+				__renderbuffergraphicsContext = new GraphicsContext (null, null, 1, 1, GraphicsContextFlags.Embedded);
+				_glapi = new Gles11Api ();
+			}
 
-            Opaque = GraphicsOverrideMode.GraphicsOverrideSettings.Opaque;
+			this.MakeCurrent();
+		}
 
-            Layer.ContentsScale = Window.Screen.Scale;
+		private void DestroyContext ()
+		{
+			AssertNotDisposed ();
+			AssertValidContext ();
 
-            //var strVersion = OpenTK.Graphics.ES11.GL.GetString (OpenTK.Graphics.ES11.All.Version);
-            //strVersion = OpenTK.Graphics.ES20.GL.GetString (OpenTK.Graphics.ES20.All.Version);
-            //var version = Version.Parse (strVersion);
-
-            try
-            {
-                __renderbuffergraphicsContext = new GraphicsContext(null, null, 2, 0, GraphicsContextFlags.Embedded);
-                _glapi = new Gles20Api();
-            }
-            catch
-            {
-                __renderbuffergraphicsContext = new GraphicsContext(null, null, 1, 1, GraphicsContextFlags.Embedded);
-                _glapi = new Gles11Api();
-            }
-
-            __renderbuffergraphicsContext.MakeCurrent(null);
-        }
-
-        private void DestroyContext()
-        {
-            AssertNotDisposed();
-            AssertValidContext();
-
-            __renderbuffergraphicsContext.Dispose();
-            __renderbuffergraphicsContext = null;
-            _glapi = null;
-        }
+			__renderbuffergraphicsContext.Dispose ();
+			__renderbuffergraphicsContext = null;
+			_glapi = null;
+		}
 
         [Export("doTick")]
         void DoTick()
@@ -249,47 +203,44 @@ namespace Microsoft.Xna.Framework
             _platform.Tick();
         }
 
-        private void CreateFramebuffer()
-        {
-            AssertNotDisposed();
-            AssertValidContext();
-
-            //    __renderbuffergraphicsContext.MakeCurrent(null);
+		private void CreateFramebuffer ()
+		{
+			this.MakeCurrent();
 			
-            // HACK:  GraphicsDevice itself should be calling
-            //        glViewport, so we shouldn't need to do it
-            //        here and then force the state into
-            //        GraphicsDevice.  However, that change is a
-            //        ways off, yet.
+			// HACK:  GraphicsDevice itself should be calling
+			//        glViewport, so we shouldn't need to do it
+			//        here and then force the state into
+			//        GraphicsDevice.  However, that change is a
+			//        ways off, yet.
             int viewportHeight = (int)Math.Round(Layer.Bounds.Size.Height * Layer.ContentsScale);
             int viewportWidth = (int)Math.Round(Layer.Bounds.Size.Width * Layer.ContentsScale);
 
-            _glapi.GenFramebuffers(1, ref _framebuffer);
-            _glapi.BindFramebuffer(All.Framebuffer, _framebuffer);
+			_glapi.GenFramebuffers (1, ref _framebuffer);
+			_glapi.BindFramebuffer (All.Framebuffer, _framebuffer);
 			
-            // Create our Depth buffer. Color buffer must be the last one bound
-            GL.GenRenderbuffers(1, ref _depthbuffer);
-            GL.BindRenderbuffer(All.Renderbuffer, _depthbuffer);
-            GL.RenderbufferStorage(All.Renderbuffer, All.DepthComponent16, viewportWidth, viewportHeight);
-            GL.FramebufferRenderbuffer(All.Framebuffer, All.DepthAttachment, All.Renderbuffer, _depthbuffer);
+			// Create our Depth buffer. Color buffer must be the last one bound
+			GL.GenRenderbuffers(1, out _depthbuffer);
+			GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, _depthbuffer);
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferInternalFormat.DepthComponent16, viewportWidth, viewportHeight);
+			GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferSlot.DepthAttachment, RenderbufferTarget.Renderbuffer, _depthbuffer);
 
-            _glapi.GenRenderbuffers(1, ref _colorbuffer);
-            _glapi.BindRenderbuffer(All.Renderbuffer, _colorbuffer);
+			_glapi.GenRenderbuffers(1, ref _colorbuffer);
+			_glapi.BindRenderbuffer(All.Renderbuffer, _colorbuffer);
 
-            var ctx = ((IGraphicsContextInternal)__renderbuffergraphicsContext).Implementation as iPhoneOSGraphicsContext;
+			var ctx = ((IGraphicsContextInternal) __renderbuffergraphicsContext).Implementation as iPhoneOSGraphicsContext;
 
-            // TODO: EAGLContext.RenderBufferStorage returns false
-            //       on all but the first call.  Nevertheless, it
-            //       works.  Still, it would be nice to know why it
-            //       claims to have failed.
-            ctx.EAGLContext.RenderBufferStorage((uint)All.Renderbuffer, Layer);
+			// TODO: EAGLContext.RenderBufferStorage returns false
+			//       on all but the first call.  Nevertheless, it
+			//       works.  Still, it would be nice to know why it
+			//       claims to have failed.
+			ctx.EAGLContext.RenderBufferStorage ((uint) All.Renderbuffer, Layer);
 			
-            _glapi.FramebufferRenderbuffer(All.Framebuffer, All.ColorAttachment0, All.Renderbuffer, _colorbuffer);
+			_glapi.FramebufferRenderbuffer (All.Framebuffer, All.ColorAttachment0, All.Renderbuffer, _colorbuffer);
 			
-            var status = GL.CheckFramebufferStatus(All.Framebuffer);
-            if (status != All.FramebufferComplete)
-                throw new InvalidOperationException(
-                    "Framebuffer was not created correctly: " + status);
+			var status = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+			if (status != FramebufferErrorCode.FramebufferComplete)
+				throw new InvalidOperationException (
+					"Framebuffer was not created correctly: " + status);
 
             _glapi.Viewport(0, 0, viewportWidth, viewportHeight);
             _glapi.Scissor(0, 0, viewportWidth, viewportHeight);
@@ -332,13 +283,13 @@ namespace Microsoft.Xna.Framework
             }
 
             if (Threading.BackgroundContext == null)
-                Threading.BackgroundContext = new MonoTouch.OpenGLES.EAGLContext(ctx.EAGLContext.API, ctx.EAGLContext.ShareGroup);
-        }
+                Threading.BackgroundContext = new OpenGLES.EAGLContext(ctx.EAGLContext.API, ctx.EAGLContext.ShareGroup);
+		}
 
-        private void DestroyFramebuffer()
-        {
-            AssertNotDisposed();
-            AssertValidContext();
+		private void DestroyFramebuffer ()
+		{
+			AssertNotDisposed ();
+			AssertValidContext ();
 
             __renderbuffergraphicsContext.MakeCurrent(null);
 
@@ -348,44 +299,40 @@ namespace Microsoft.Xna.Framework
             _glapi.DeleteRenderbuffers(1, ref _colorbuffer);
             _colorbuffer = 0;
 			
-            _glapi.DeleteRenderbuffers(1, ref _depthbuffer);
-            _depthbuffer = 0;
-        }
+			_glapi.DeleteRenderbuffers (1, ref _depthbuffer);
+			_depthbuffer = 0;
+		}
 
-        // FIXME: This logic belongs in GraphicsDevice.Present, not
-        //        here.  If it can someday be moved there, then the
-        //        normal call to Present in Game.Tick should cover
-        //        this.  For now, iOSGamePlatform will call Present
-        //        in the Draw/Update loop handler.
-        [Obsolete("Remove iOSGameView.Present once GraphicsDevice.Present fully expresses this")]
-        public void Present()
-        {
-            AssertNotDisposed();
-            AssertValidContext();
+		// FIXME: This logic belongs in GraphicsDevice.Present, not
+		//        here.  If it can someday be moved there, then the
+		//        normal call to Present in Game.Tick should cover
+		//        this.  For now, iOSGamePlatform will call Present
+		//        in the Draw/Update loop handler.
+		public void Present ()
+		{
+            AssertNotDisposed ();
+            AssertValidContext ();
 
-            __renderbuffergraphicsContext.MakeCurrent(null);
-            GL.BindRenderbuffer(All.Renderbuffer, this._colorbuffer);
+            this.MakeCurrent();
+            GL.BindRenderbuffer (All.Renderbuffer, this._colorbuffer);
             __renderbuffergraphicsContext.SwapBuffers();
         }
 
-        // FIXME: This functionality belongs iMakeCurrentn GraphicsDevice.
-        [Obsolete("Move the functionality of iOSGameView.MakeCurrent into GraphicsDevice")]
-        public void MakeCurrent()
-        {
-            AssertNotDisposed();
-            AssertValidContext();
+		// FIXME: This functionality belongs in GraphicsDevice.
+		public void MakeCurrent ()
+		{
+			AssertNotDisposed ();
+			AssertValidContext ();
 
-            __renderbuffergraphicsContext.MakeCurrent(null);
-        }
+            if (!__renderbuffergraphicsContext.IsCurrent)
+            {
+			    __renderbuffergraphicsContext.MakeCurrent (null);
+            }
+		}
 
-        bool _requiresLayout = true;
-
-        public override void LayoutSubviews()
-        {
-            if (!_requiresLayout)
-                return;
-               
-            base.LayoutSubviews();
+		public override void LayoutSubviews ()
+		{
+			base.LayoutSubviews ();
 
             _requiresLayout = false;
 
