@@ -1051,6 +1051,9 @@
     <Compile Include="Android\MonoGameAndroidGameView.cs">
       <Platforms>Android,Ouya</Platforms>
     </Compile>
+    <Compile Include="Android\TransparentMonoGameView.cs">
+      <Platforms>Android,Ouya</Platforms>
+    </Compile>
     <Compile Include="Android\Devices\Sensors\Accelerometer.cs">
       <Platforms>Android,Ouya</Platforms>
     </Compile>
