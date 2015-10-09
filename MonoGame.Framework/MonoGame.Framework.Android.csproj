@@ -10,7 +10,7 @@
     <AssemblyName>MonoGame.Framework</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1591,0436</NoWarn>
-    <TargetFrameworkVersion>v4.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.4</TargetFrameworkVersion>
     <TargetFrameworkProfile>
     </TargetFrameworkProfile>
     <FileAlignment>512</FileAlignment>
@@ -898,6 +898,7 @@
     <Compile Include="Android\ScreenReciever.cs">
       <Platforms>Android,Ouya</Platforms>
     </Compile>
+    <Compile Include="Android\TransparentMonoGameView.cs" />
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

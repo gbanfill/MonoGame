@@ -42,7 +42,9 @@ namespace Microsoft.Xna.Framework
 
         public override void Exit()
         {
-            Game.Activity.MoveTaskToBack(true);
+           // TODO: We not using MoveTaskToBack as this doesnt allow us to exit the
+           // game and return to the rest of the app.
+           //Game.Activity.MoveTaskToBack(true);
             //TODO: Fix this
             try
             {

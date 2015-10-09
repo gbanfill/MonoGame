@@ -25,6 +25,8 @@ namespace Microsoft.Xna.Framework
         public bool AutoPauseAndResumeMediaPlayer = true;
         public bool RenderOnUIThread = true; 
 
+        public bool ShowFullScreen = true;
+
 		/// <summary>
 		/// OnCreate called when the activity is launched from cold or after the app
 		/// has been killed due to a higher priority app needing the memory
@@ -34,7 +36,8 @@ namespace Microsoft.Xna.Framework
 		/// </param>
 		protected override void OnCreate (Bundle savedInstanceState)
 		{
-            RequestWindowFeature(WindowFeatures.NoTitle);
+            if (ShowFullScreen)
+                RequestWindowFeature(WindowFeatures.NoTitle);
             base.OnCreate(savedInstanceState);
 
 			IntentFilter filter = new IntentFilter();
