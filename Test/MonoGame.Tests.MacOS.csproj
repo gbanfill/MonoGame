@@ -1,20 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.0</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{C2BDD2AE-6147-656D-2E54-657374732E4D}</ProjectGuid>
-    <ProjectTypeGuids>{42C0BBD9-55CE-4FC1-8D90-A7348ABAFB23};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <ProjectTypeGuids>{A3F8F2AB-B479-4A4A-A458-A89E7DC349F1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Exe</OutputType>
     <RootNamespace>MonoGame.Tests</RootNamespace>
     <AssemblyName>MonoGameTests</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1591,0436</NoWarn>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+    <LangVersion>Default</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,6 +26,7 @@
     <DefineConstants>DEBUG;MONOMAC</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
     <EnableCodeSigning>False</EnableCodeSigning>
     <CreatePackage>False</CreatePackage>
     <EnablePackageSigning>False</EnablePackageSigning>
@@ -41,6 +42,7 @@
     <DefineConstants>MONOMAC</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
     <EnableCodeSigning>False</EnableCodeSigning>
     <CreatePackage>False</CreatePackage>
     <EnablePackageSigning>False</EnablePackageSigning>
@@ -48,13 +50,13 @@
     <UseSGen>False</UseSGen>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="XamMac" />
-    <Reference Include="System"></Reference>
-    <Reference Include="System.Core"></Reference>
-    <Reference Include="System.Xml"></Reference>
-    <Reference Include="System.Web"></Reference>
-    <Reference Include="System.Drawing">
-    </Reference>
+    <Reference Include="Xamarin.Mac" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="OpenTK" />
     <Reference Include="NDesk.Options">
       <HintPath>..\ThirdParty\Dependencies\Tests\NDesk.Options.dll</HintPath>
     </Reference>
@@ -72,156 +74,94 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-    </Compile>
-    <Compile Include="Runner\Constants.cs">
-    </Compile>
-    <Compile Include="Runner\Extensions.cs">
-    </Compile>
-    <Compile Include="Runner\FrameInfo.cs">
-    </Compile>
-    <Compile Include="Runner\FramePixelData.cs">
-    </Compile>
-    <Compile Include="Runner\Interface\AggregateTestFilter.cs">
-    </Compile>
-    <Compile Include="Runner\Interface\CommandLineInterface.cs">
-    </Compile>
-    <Compile Include="Runner\Interface\RegexTestFilter.cs">
-    </Compile>
-    <Compile Include="Runner\Interface\RunOptions.cs">
-    </Compile>
-    <Compile Include="Runner\Interface\TestEventListenerBase.cs">
-    </Compile>
-    <Compile Include="Runner\Interface\TestFilterAction.cs">
-    </Compile>
-    <Compile Include="Runner\PixelArgb.cs">
-    </Compile>
-    <Compile Include="Runner\Utility.cs">
-    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Runner\Constants.cs" />
+    <Compile Include="Runner\Extensions.cs" />
+    <Compile Include="Runner\FrameInfo.cs" />
+    <Compile Include="Runner\FramePixelData.cs" />
+    <Compile Include="Runner\Interface\AggregateTestFilter.cs" />
+    <Compile Include="Runner\Interface\CommandLineInterface.cs" />
+    <Compile Include="Runner\Interface\RegexTestFilter.cs" />
+    <Compile Include="Runner\Interface\RunOptions.cs" />
+    <Compile Include="Runner\Interface\TestEventListenerBase.cs" />
+    <Compile Include="Runner\Interface\TestFilterAction.cs" />
+    <Compile Include="Runner\PixelArgb.cs" />
+    <Compile Include="Runner\Utility.cs" />
     <Compile Include="Runner\MacOS\Program.cs">
       <Platforms>MacOS</Platforms>
     </Compile>
     <Compile Include="Runner\Desktop\FramePixelData.cs">
       <Platforms>Windows,WindowsGL,MacOS,Linux</Platforms>
     </Compile>
-    <Compile Include="Framework\Bounding.cs">
-    </Compile>
-    <Compile Include="Framework\ColorTest.cs">
-    </Compile>
-    <Compile Include="Framework\CurveKeyCollectionTest.cs">
-    </Compile>
-    <Compile Include="Framework\CurveKeyTest.cs">
-    </Compile>
-    <Compile Include="Framework\CurveTest.cs">
-    </Compile>
-    <Compile Include="Framework\EnumConformingTest.cs">
-    </Compile>
-    <Compile Include="Framework\GamePadStateTest.cs">
-    </Compile>
-    <Compile Include="Framework\GameTest.cs">
-    </Compile>
-    <Compile Include="Framework\GameTest+Methods.cs">
-    </Compile>
-    <Compile Include="Framework\GameTest+Properties.cs">
-    </Compile>
-    <Compile Include="Framework\GestureRecognizerTest.cs">
-    </Compile>
-    <Compile Include="Framework\MathHelperTest.cs">
-    </Compile>
-    <Compile Include="Framework\MatrixTest.cs">
-    </Compile>
-    <Compile Include="Framework\MockWindow.cs">
-    </Compile>
-    <Compile Include="Framework\PackedVectorTest.cs">
-    </Compile>
-    <Compile Include="Framework\PlaneTest.cs">
-    </Compile>
-    <Compile Include="Framework\RayTest.cs">
-    </Compile>
-    <Compile Include="Framework\RectangleTest.cs">
-    </Compile>
-    <Compile Include="Framework\TestGameBase.cs">
-    </Compile>
-    <Compile Include="Framework\TouchCollectionTest.cs">
-    </Compile>
-    <Compile Include="Framework\TouchLocationTest.cs">
-    </Compile>
-    <Compile Include="Framework\TouchPanelTest.cs">
-    </Compile>
-    <Compile Include="Framework\UtilitiesTest.cs">
-    </Compile>
-    <Compile Include="Framework\Vector2Test.cs">
-    </Compile>
-    <Compile Include="Framework\Vector3Test.cs">
-    </Compile>
-    <Compile Include="Framework\Vector4Test.cs">
-    </Compile>
-    <Compile Include="Framework\Components\DrawFrameNumberComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\FlexibleGameComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\FrameCompareComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\ImplicitDrawOrderComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\PixelDeltaFrameComparer.cs">
-    </Compile>
-    <Compile Include="Framework\Components\Simple3DCubeComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\SpaceshipModelDrawComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\UpdateGuard.cs">
-    </Compile>
-    <Compile Include="Framework\Components\VisualTestDrawableGameComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\VisualTestGameComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\Colored3DCubeComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Components\TexturedQuadComponent.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\BlendStateTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\DepthStencilStateTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\EffectTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\GraphicsDeviceTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\RasterizerStateTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\SamplerStateTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\ScissorRectangleTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\Texture2DTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\Texture3DTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\TextureCubeTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\IndexBufferTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\VertexBufferTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\MiscellaneousTests.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\ShaderTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\SpriteBatchTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\SpriteFontTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\ViewportTest.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\VisualTestFixtureBase.cs">
-    </Compile>
-    <Compile Include="Framework\Visual\VisualTestGame.cs">
-    </Compile>
+    <Compile Include="Framework\Bounding.cs" />
+    <Compile Include="Framework\ColorTest.cs" />
+    <Compile Include="Framework\CurveKeyCollectionTest.cs" />
+    <Compile Include="Framework\CurveKeyTest.cs" />
+    <Compile Include="Framework\CurveTest.cs" />
+    <Compile Include="Framework\EnumConformingTest.cs" />
+    <Compile Include="Framework\GamePadStateTest.cs" />
+    <Compile Include="Framework\GamePadThumbSticksTest.cs" />
+    <Compile Include="Framework\GameTest.cs" />
+    <Compile Include="Framework\GameTest+Methods.cs" />
+    <Compile Include="Framework\GameTest+Properties.cs" />
+    <Compile Include="Framework\GestureRecognizerTest.cs" />
+    <Compile Include="Framework\MathHelperTest.cs" />
+    <Compile Include="Framework\MatrixTest.cs" />
+    <Compile Include="Framework\MockWindow.cs" />
+    <Compile Include="Framework\PackedVectorTest.cs" />
+    <Compile Include="Framework\PlaneTest.cs" />
+    <Compile Include="Framework\QuaternionTest.cs" />
+    <Compile Include="Framework\RayTest.cs" />
+    <Compile Include="Framework\RectangleTest.cs" />
+    <Compile Include="Framework\SpriteFontNonVisualTest.cs" />
+    <Compile Include="Framework\TestGameBase.cs" />
+    <Compile Include="Framework\Texture2DNonVisualTest.cs" />
+    <Compile Include="Framework\TouchCollectionTest.cs" />
+    <Compile Include="Framework\TouchLocationTest.cs" />
+    <Compile Include="Framework\TouchPanelTest.cs" />
+    <Compile Include="Framework\UtilitiesTest.cs" />
+    <Compile Include="Framework\Vector2Test.cs" />
+    <Compile Include="Framework\Vector3Test.cs" />
+    <Compile Include="Framework\Vector4Test.cs" />
+    <Compile Include="Framework\VertexTests.cs" />
+    <Compile Include="Framework\Components\DrawFrameNumberComponent.cs" />
+    <Compile Include="Framework\Components\FlexibleGameComponent.cs" />
+    <Compile Include="Framework\Components\FrameCompareComponent.cs" />
+    <Compile Include="Framework\Components\ImplicitDrawOrderComponent.cs" />
+    <Compile Include="Framework\Components\PixelDeltaFrameComparer.cs" />
+    <Compile Include="Framework\Components\Simple3DCubeComponent.cs" />
+    <Compile Include="Framework\Components\SpaceshipModelDrawComponent.cs" />
+    <Compile Include="Framework\Components\UpdateGuard.cs" />
+    <Compile Include="Framework\Components\VisualTestDrawableGameComponent.cs" />
+    <Compile Include="Framework\Components\VisualTestGameComponent.cs" />
+    <Compile Include="Framework\Components\Colored3DCubeComponent.cs" />
+    <Compile Include="Framework\Components\TexturedQuadComponent.cs" />
+    <Compile Include="Framework\Visual\BlendStateTest.cs" />
+    <Compile Include="Framework\Visual\DepthStencilStateTest.cs" />
+    <Compile Include="Framework\Visual\EffectTest.cs" />
+    <Compile Include="Framework\Visual\GraphicsDeviceTest.cs" />
+    <Compile Include="Framework\Visual\RasterizerStateTest.cs" />
+    <Compile Include="Framework\Visual\SamplerStateTest.cs" />
+    <Compile Include="Framework\Visual\ScissorRectangleTest.cs" />
+    <Compile Include="Framework\Visual\Texture2DTest.cs" />
+    <Compile Include="Framework\Visual\Texture3DTest.cs" />
+    <Compile Include="Framework\Visual\TextureCubeTest.cs" />
+    <Compile Include="Framework\Visual\IndexBufferTest.cs" />
+    <Compile Include="Framework\Visual\VertexBufferTest.cs" />
+    <Compile Include="Framework\Visual\MiscellaneousTests.cs" />
+    <Compile Include="Framework\Visual\ShaderTest.cs" />
+    <Compile Include="Framework\Visual\SpriteBatchTest.cs" />
+    <Compile Include="Framework\Visual\SpriteFontTest.cs" />
+    <Compile Include="Framework\Visual\ViewportTest.cs" />
+    <Compile Include="Framework\Visual\OcclusionQueryTest.cs" />
+    <Compile Include="Framework\Visual\VisualTestFixtureBase.cs" />
+    <Compile Include="Framework\Visual\VisualTestGame.cs" />
     <Compile Include="ContentPipeline\AssetTestClasses.cs">
       <Platforms>Windows,MacOS,Linux</Platforms>
     </Compile>
-    <Compile Include="ContentPipeline\AssetTestUtility.cs">
+    <Compile Include="ContentPipeline\AssetTestUtility.cs" />
+    <Compile Include="ContentPipeline\BitmapContentTests.cs">
+      <Platforms>Windows,MacOS,Linux</Platforms>
     </Compile>
     <Compile Include="ContentPipeline\FontDescriptionTests.cs">
       <Platforms>Windows,MacOS,Linux</Platforms>
@@ -241,19 +181,21 @@
     <Compile Include="ContentPipeline\TestContentBuildLogger.cs">
       <Platforms>Windows,MacOS,Linux</Platforms>
     </Compile>
+    <Compile Include="ContentPipeline\TestImporterContext.cs">
+      <Platforms>Windows,MacOS,Linux</Platforms>
+    </Compile>
     <Compile Include="ContentPipeline\TestProcessorContext.cs">
       <Platforms>Windows,MacOS,Linux</Platforms>
     </Compile>
     <Compile Include="ContentPipeline\TextureContentTests.cs">
       <Platforms>Windows,MacOS,Linux</Platforms>
     </Compile>
+    <Compile Include="ContentPipeline\TextureImporterTests.cs">
+      <Platforms>Windows,MacOS,Linux</Platforms>
+    </Compile>
     <Compile Include="ContentPipeline\TextureProcessorTests.cs">
       <Platforms>Windows,MacOS,Linux</Platforms>
     </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="ReadMe.md">
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\tests.xsl">
@@ -308,7 +250,13 @@
     <Content Include="Assets\Effects\DefinesTest.fx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Effects\Instancing.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Effects\ParserTest.fx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Effects\PreprocessorInclude.fxh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\Effects\PreprocessorTest.fx">
@@ -333,6 +281,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\ReferenceImages\DepthStencilState\VisualTestStencilBuffer.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\ReferenceImages\GraphicsDevice\DrawInstancedPrimitivesVisualTest.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Assets\ReferenceImages\GraphicsDevice\VertexTextureVisualTest.png">
@@ -734,6 +685,15 @@
     <Content Include="Assets\Xml\24_GenericTypes.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Xml\25_StructArrayNoElements.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Xml\26_ChildCollections.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Xml\27_Colors.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Fonts\Default.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -755,6 +715,21 @@
     <Content Include="Assets\Fonts\DataFont.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Fonts\JingJing.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Fonts\Lindsey.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Fonts\Motorwerk.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Fonts\QuartzMS.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Fonts\SegoeKeycaps.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Assets\Textures\white-1.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
@@ -770,36 +745,80 @@
     <Content Include="Assets\Textures\fun-background.xnb">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px-monochrome.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px-4bits.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.tga">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.tif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\SampleCube64DXT1Mips.dds">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px.dds">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\LogoOnly_64px-mipmaps.dds">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\logo555.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\logo565.bmp">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\rgbf.tif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Assets\Textures\RGBA16.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
+    <None Include="ReadMe.md" />
+    <None Include="Info.plist">
+      <Platforms>iOS,MacOS</Platforms>
+    </None>
   </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Mac\Xamarin.Mac.CSharp.targets" />
+  <PropertyGroup>
+    <_PostBuildHookTimestamp>@(IntermediateAssembly-&gt;'%(FullPath).timestamp')</_PostBuildHookTimestamp>
+  </PropertyGroup>
+  <Target Name="PostBuildHooks" Inputs="@(IntermediateAssembly);@(ReferencePath)" Outputs="@(IntermediateAssembly);$(_PostBuildHookTimestamp)" AfterTargets="CoreCompile" BeforeTargets="AfterCompile">
+    <Touch Files="$(_PostBuildHookTimestamp)" AlwaysCreate="True" />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\MonoGame.Framework\MonoGame.Framework.MacOS.csproj">
       <Project>{36C538E6-C32A-4A8D-A39C-566173D7118E}</Project>

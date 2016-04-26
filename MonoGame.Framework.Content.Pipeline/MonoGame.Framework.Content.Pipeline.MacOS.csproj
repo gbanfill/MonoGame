@@ -1,20 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>10.0.0</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{A6C47073-8FF9-4997-BA3A-BA257CC88CFE}</ProjectGuid>
-    <ProjectTypeGuids>{42C0BBD9-55CE-4FC1-8D90-A7348ABAFB23};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <ProjectTypeGuids>{A3F8F2AB-B479-4A4A-A458-A89E7DC349F1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
     <OutputType>Library</OutputType>
     <RootNamespace>Microsoft.Xna.Framework.Content.Pipeline</RootNamespace>
     <AssemblyName>MonoGame.Framework.Content.Pipeline</AssemblyName>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1591,0436</NoWarn>
-    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
-    <TargetFrameworkProfile>
-    </TargetFrameworkProfile>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+    <LangVersion>Default</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -26,6 +26,7 @@
     <DefineConstants>DEBUG;TRACE;MACOS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
     <EnableCodeSigning>False</EnableCodeSigning>
     <CreatePackage>False</CreatePackage>
     <EnablePackageSigning>False</EnablePackageSigning>
@@ -41,6 +42,7 @@
     <DefineConstants>TRACE;MACOS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
     <EnableCodeSigning>False</EnableCodeSigning>
     <CreatePackage>False</CreatePackage>
     <EnablePackageSigning>False</EnablePackageSigning>
@@ -48,17 +50,15 @@
     <UseSGen>False</UseSGen>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="XamMac" />
-    <Reference Include="Microsoft.CSharp"></Reference>
-    <Reference Include="System"></Reference>
-    <Reference Include="System.Core"></Reference>
-    <Reference Include="System.Data"></Reference>
-    <Reference Include="System.Data.DataSetExtensions"></Reference>
-    <Reference Include="System.Drawing"></Reference>
-    <Reference Include="System.Xml"></Reference>
-    <Reference Include="System.Xml.Linq"></Reference>
-    <Reference Include="MonoMac, Version=0.0.0.0, Culture=neutral">
-    </Reference>
+    <Reference Include="Xamarin.Mac" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
     <Reference Include="AssimpNet">
       <HintPath>..\ThirdParty\Dependencies\assimp\AssimpNet.dll</HintPath>
     </Reference>
@@ -68,613 +68,379 @@
     <Reference Include="SharpFont">
       <HintPath>..\ThirdParty\Dependencies\SharpFont\x64\SharpFont.dll</HintPath>
     </Reference>
-    <Reference Include="ManagedPVRTC">
-      <HintPath>..\ThirdParty\Dependencies\ManagedPVRTC\ManagedPVRTC.dll</HintPath>
-    </Reference>
     <Reference Include="FreeImageNET">
       <HintPath>..\ThirdParty\Dependencies\FreeImage.NET\FreeImageNET.dll</HintPath>
     </Reference>
+    <Reference Include="PVRTexLibNET">
+      <HintPath>..\ThirdParty\Dependencies\PVRTexLibNET\PVRTexLibNET.dll</HintPath>
+    </Reference>
+    <Reference Include="ATI.TextureConverter">
+      <HintPath>..\ThirdParty\Dependencies\ATI.TextureConverter\ATI.TextureConverter.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs">
-    </Compile>
-    <Compile Include="Audio\AudioContent.cs">
-    </Compile>
-    <Compile Include="Audio\AudioFileType.cs">
-    </Compile>
-    <Compile Include="Audio\AudioFormat.cs">
-    </Compile>
-    <Compile Include="Audio\AudioHelper.cs">
-    </Compile>
-    <Compile Include="Audio\ConversionFormat.cs">
-    </Compile>
-    <Compile Include="Audio\ConversionQuality.cs">
-    </Compile>
-    <Compile Include="Builder\FileHelper.cs">
-    </Compile>
-    <Compile Include="Builder\Convertors\StringToColorConverter.cs">
-    </Compile>
-    <Compile Include="Builder\PathHelper.cs">
-    </Compile>
-    <Compile Include="Builder\PipelineBuildEvent.cs">
-    </Compile>
-    <Compile Include="Builder\PipelineBuildLogger.cs">
-    </Compile>
-    <Compile Include="Builder\PipelineImporterContext.cs">
-    </Compile>
-    <Compile Include="Builder\PipelineManager.cs">
-    </Compile>
-    <Compile Include="Builder\PipelineProcessorContext.cs">
-    </Compile>
-    <Compile Include="Builder\TypeExtensions.cs">
-    </Compile>
-    <Compile Include="Builder\XmlColor.cs">
-    </Compile>
-    <Compile Include="Graphics\AlphaTestMaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\AnimationChannel.cs">
-    </Compile>
-    <Compile Include="Graphics\AnimationChannelDictionary.cs">
-    </Compile>
-    <Compile Include="Graphics\AnimationContent.cs">
-    </Compile>
-    <Compile Include="Graphics\AnimationContentDictionary.cs">
-    </Compile>
-    <Compile Include="Graphics\AnimationKeyframe.cs">
-    </Compile>
-    <Compile Include="Graphics\BasicMaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\BitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\BitmapUtils.cs">
-    </Compile>
-    <Compile Include="Graphics\BoneContent.cs">
-    </Compile>
-    <Compile Include="Graphics\BoneWeight.cs">
-    </Compile>
-    <Compile Include="Graphics\BoneWeightCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\CharacterRegion.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\CharacterRegionTypeConverter.cs">
-    </Compile>
-    <Compile Include="Graphics\DualTextureMaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Dxt1BitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Dxt3BitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Dxt5BitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\DxtBitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\EffectContent.cs">
-    </Compile>
-    <Compile Include="Graphics\EffectMaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\EnvironmentMapMaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\FontDescription.cs">
-    </Compile>
-    <Compile Include="Graphics\FontDescriptionStyle.cs">
-    </Compile>
-    <Compile Include="Graphics\GeometryContent.cs">
-    </Compile>
-    <Compile Include="Graphics\GeometryContentCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\Glyph.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\GlyphCropper.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\GlyphPacker.cs">
-    </Compile>
-    <Compile Include="Graphics\GraphicsUtil.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\IFontImporter.cs">
-    </Compile>
-    <Compile Include="Graphics\IndexCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\IndirectPositionCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\MaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\MeshContent.cs">
-    </Compile>
-    <Compile Include="Graphics\MeshHelper.cs">
-    </Compile>
-    <Compile Include="Graphics\MipmapChain.cs">
-    </Compile>
-    <Compile Include="Graphics\MipmapChainCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\NodeContent.cs">
-    </Compile>
-    <Compile Include="Graphics\NodeContentCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\PixelBitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\PositionCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\PvrtcBitmapContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\SharpFontImporter.cs">
-    </Compile>
-    <Compile Include="Graphics\SkinnedMaterialContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Texture2DContent.cs">
-    </Compile>
-    <Compile Include="Graphics\Texture3DContent.cs">
-    </Compile>
-    <Compile Include="Graphics\TextureContent.cs">
-    </Compile>
-    <Compile Include="Graphics\TextureCubeContent.cs">
-    </Compile>
-    <Compile Include="Graphics\TextureReferenceDictionary.cs">
-    </Compile>
-    <Compile Include="Graphics\Font\TrueTypeImporter.cs">
-    </Compile>
-    <Compile Include="Graphics\VertexChannel.cs">
-    </Compile>
-    <Compile Include="Graphics\VertexChannelCollection.cs">
-    </Compile>
-    <Compile Include="Graphics\VertexChannelGeneric.cs">
-    </Compile>
-    <Compile Include="Graphics\VertexChannelNames.cs">
-    </Compile>
-    <Compile Include="Graphics\VertexContent.cs">
-    </Compile>
-    <Compile Include="Processors\CompiledEffectContent.cs">
-    </Compile>
-    <Compile Include="Processors\EffectProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\EffectProcessorDebugMode.cs">
-    </Compile>
-    <Compile Include="Processors\FontDescriptionProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\FontTextureProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\MaterialProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\MaterialProcessorDefaultEffect.cs">
-    </Compile>
-    <Compile Include="Processors\ModelBoneContent.cs">
-    </Compile>
-    <Compile Include="Processors\ModelBoneContentCollection.cs">
-    </Compile>
-    <Compile Include="Processors\ModelContent.cs">
-    </Compile>
-    <Compile Include="Processors\ModelMeshContent.cs">
-    </Compile>
-    <Compile Include="Processors\ModelMeshContentCollection.cs">
-    </Compile>
-    <Compile Include="Processors\ModelMeshPartContent.cs">
-    </Compile>
-    <Compile Include="Processors\ModelMeshPartContentCollection.cs">
-    </Compile>
-    <Compile Include="Processors\ModelProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\PassThroughProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\SongContent.cs">
-    </Compile>
-    <Compile Include="Processors\SongProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\SoundEffectContent.cs">
-    </Compile>
-    <Compile Include="Processors\SoundEffectProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\SpriteFontContent.cs">
-    </Compile>
-    <Compile Include="Processors\TextureProcessor.cs">
-    </Compile>
-    <Compile Include="Processors\TextureProcessorOutputFormat.cs">
-    </Compile>
-    <Compile Include="Processors\VertexBufferContent.cs">
-    </Compile>
-    <Compile Include="Processors\VertexDeclarationContent.cs">
-    </Compile>
-    <Compile Include="Processors\VideoProcessor.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\AlphaTestEffectWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ArrayWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\BasicEffectWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\BooleanWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\BoundingBoxWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\BoundingFrustumWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\BoundingSphereWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\BuiltInContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ByteWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\CharWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ColorWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ContentCompiler.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ContentTypeWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ContentTypeWriterAttribute.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ContentTypeWriterGeneric.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\CurveWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\DateTimeWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\DecimalWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\DictionaryWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\DoubleWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\DualTextureEffectWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\CompiledEffectContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\EnumWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\EnvironmentMapEffectWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ExternalReferenceWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\IndexBufferWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Int16Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Int32Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Int64Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ListWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\MatrixWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ModelWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\NullableWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\PlaneWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\PointWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\QuaternionWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\RayWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\RectangleWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\ReflectiveWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\SByteWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\SingleWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\SkinnedEffectWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\SongContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\SoundEffectContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\SpriteFontContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\StringWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\TextureWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Texture2DContentWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\TextureCubeWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\TimeSpanWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\UInt16Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\UInt32Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\UInt64Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Vector2Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Vector3Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\Vector4Writer.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\VertexBufferWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\VertexDeclarationWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Compiler\VideoWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ArraySerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\BoolSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ByteSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\CharSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ColorSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ContentTypeSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ContentTypeSerializerAttribute.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ContentTypeSerializerT.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\DictionarySerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\DoubleSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ElementSerializerT.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\EnumSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ExternalReferenceSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\FloatSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\IntermediateReader.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\IntermediateSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\IntermediateWriter.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\IntSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ListSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\LongSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\MatrixSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\NamedValueDictionarySerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\NamespaceAliasHelper.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\NonGenericIListSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\NullableSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\PlaneSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\PointSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\QuaternionSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\RectangleSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ReflectiveSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\SByteSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ShortSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\StringSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\UIntSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\ULongSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\UShortSerializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\Vector2Serializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\Vector3Serializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\Vector4Serializer.cs">
-    </Compile>
-    <Compile Include="Serialization\Intermediate\TimeSpanSerializer.cs">
-    </Compile>
-    <Compile Include="ChildCollection.cs">
-    </Compile>
-    <Compile Include="ContentBuildLogger.cs">
-    </Compile>
-    <Compile Include="ContentIdentity.cs">
-    </Compile>
-    <Compile Include="ContentImporter.cs">
-    </Compile>
-    <Compile Include="ContentImporterAttribute.cs">
-    </Compile>
-    <Compile Include="ContentImporterContext.cs">
-    </Compile>
-    <Compile Include="ContentItem.cs">
-    </Compile>
-    <Compile Include="ContentProcessor.cs">
-    </Compile>
-    <Compile Include="ContentProcessorAttribute.cs">
-    </Compile>
-    <Compile Include="ContentProcessorContext.cs">
-    </Compile>
-    <Compile Include="EffectImporter.cs">
-    </Compile>
-    <Compile Include="ExternalReference.cs">
-    </Compile>
-    <Compile Include="ExternalTool.cs">
-    </Compile>
-    <Compile Include="FbxImporter.cs">
-    </Compile>
-    <Compile Include="FontDescriptionImporter.cs">
-    </Compile>
-    <Compile Include="H264Importer.cs">
-    </Compile>
-    <Compile Include="IContentImporter.cs">
-    </Compile>
-    <Compile Include="IContentProcessor.cs">
-    </Compile>
-    <Compile Include="InvalidContentException.cs">
-    </Compile>
-    <Compile Include="Mp3Importer.cs">
-    </Compile>
-    <Compile Include="NamedValueDictionary.cs">
-    </Compile>
-    <Compile Include="OpaqueDataDictionary.cs">
-    </Compile>
-    <Compile Include="OpenAssetImporter.cs">
-    </Compile>
-    <Compile Include="PipelineComponentScanner.cs">
-    </Compile>
-    <Compile Include="PipelineException.cs">
-    </Compile>
-    <Compile Include="ProcessorParameter.cs">
-    </Compile>
-    <Compile Include="ProcessorParameterCollection.cs">
-    </Compile>
-    <Compile Include="TargetPlatform.cs">
-    </Compile>
-    <Compile Include="TextureImporter.cs">
-    </Compile>
-    <Compile Include="VideoContent.cs">
-    </Compile>
-    <Compile Include="WavImporter.cs">
-    </Compile>
-    <Compile Include="WmaImporter.cs">
-    </Compile>
-    <Compile Include="WmvImporter.cs">
-    </Compile>
-    <Compile Include="XImporter.cs">
-    </Compile>
-    <Compile Include="XmlImporter.cs">
-    </Compile>
-    <Compile Include="Utilities\LZ4\LZ4Codec.cs">
-    </Compile>
-    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe.cs">
-    </Compile>
-    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe32.Dirty.cs">
-    </Compile>
-    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe32HC.Dirty.cs">
-    </Compile>
-    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe64.Dirty.cs">
-    </Compile>
-    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe64HC.Dirty.cs">
-    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Audio\AudioContent.cs" />
+    <Compile Include="Audio\AudioFileType.cs" />
+    <Compile Include="Audio\AudioFormat.cs" />
+    <Compile Include="Audio\AudioHelper.cs" />
+    <Compile Include="Audio\ConversionFormat.cs" />
+    <Compile Include="Audio\ConversionQuality.cs" />
+    <Compile Include="Builder\FileHelper.cs" />
+    <Compile Include="Builder\Convertors\StringToColorConverter.cs" />
+    <Compile Include="Builder\PathHelper.cs" />
+    <Compile Include="Builder\PipelineBuildEvent.cs" />
+    <Compile Include="Builder\PipelineBuildLogger.cs" />
+    <Compile Include="Builder\PipelineImporterContext.cs" />
+    <Compile Include="Builder\PipelineManager.cs" />
+    <Compile Include="Builder\PipelineProcessorContext.cs" />
+    <Compile Include="Builder\TypeExtensions.cs" />
+    <Compile Include="Builder\XmlColor.cs" />
+    <Compile Include="Graphics\AlphaTestMaterialContent.cs" />
+    <Compile Include="Graphics\AnimationChannel.cs" />
+    <Compile Include="Graphics\AnimationChannelDictionary.cs" />
+    <Compile Include="Graphics\AnimationContent.cs" />
+    <Compile Include="Graphics\AnimationContentDictionary.cs" />
+    <Compile Include="Graphics\AnimationKeyframe.cs" />
+    <Compile Include="Graphics\AtcBitmapContent.cs" />
+    <Compile Include="Graphics\AtcExplicitBitmapContent.cs" />
+    <Compile Include="Graphics\AtcInterpolatedBitmapContent.cs" />
+    <Compile Include="Graphics\BasicMaterialContent.cs" />
+    <Compile Include="Graphics\BitmapContent.cs" />
+    <Compile Include="Graphics\Font\BitmapUtils.cs" />
+    <Compile Include="Graphics\BoneContent.cs" />
+    <Compile Include="Graphics\BoneWeight.cs" />
+    <Compile Include="Graphics\BoneWeightCollection.cs" />
+    <Compile Include="Graphics\Font\CharacterRegion.cs" />
+    <Compile Include="Graphics\Font\CharacterRegionTypeConverter.cs" />
+    <Compile Include="Graphics\DualTextureMaterialContent.cs" />
+    <Compile Include="Graphics\Dxt1BitmapContent.cs" />
+    <Compile Include="Graphics\Dxt3BitmapContent.cs" />
+    <Compile Include="Graphics\Dxt5BitmapContent.cs" />
+    <Compile Include="Graphics\DxtBitmapContent.cs" />
+    <Compile Include="Graphics\EffectContent.cs" />
+    <Compile Include="Graphics\EffectMaterialContent.cs" />
+    <Compile Include="Graphics\EnvironmentMapMaterialContent.cs" />
+    <Compile Include="Graphics\Etc1BitmapContent.cs" />
+    <Compile Include="Graphics\FontDescription.cs" />
+    <Compile Include="Graphics\FontDescriptionStyle.cs" />
+    <Compile Include="Graphics\GeometryContent.cs" />
+    <Compile Include="Graphics\GeometryContentCollection.cs" />
+    <Compile Include="Graphics\Font\Glyph.cs" />
+    <Compile Include="Graphics\Font\GlyphCropper.cs" />
+    <Compile Include="Graphics\Font\GlyphPacker.cs" />
+    <Compile Include="Graphics\GraphicsUtil.cs" />
+    <Compile Include="Graphics\Font\IFontImporter.cs" />
+    <Compile Include="Graphics\IndexCollection.cs" />
+    <Compile Include="Graphics\IndirectPositionCollection.cs" />
+    <Compile Include="Graphics\MaterialContent.cs" />
+    <Compile Include="Graphics\MeshContent.cs" />
+    <Compile Include="Graphics\MeshHelper.cs" />
+    <Compile Include="Graphics\MipmapChain.cs" />
+    <Compile Include="Graphics\MipmapChainCollection.cs" />
+    <Compile Include="Graphics\NodeContent.cs" />
+    <Compile Include="Graphics\NodeContentCollection.cs" />
+    <Compile Include="Graphics\PixelBitmapContent.cs" />
+    <Compile Include="Graphics\PositionCollection.cs" />
+    <Compile Include="Graphics\PvrtcBitmapContent.cs" />
+    <Compile Include="Graphics\PvrtcRgb2BitmapContent.cs" />
+    <Compile Include="Graphics\PvrtcRgb4BitmapContent.cs" />
+    <Compile Include="Graphics\PvrtcRgba2BitmapContent.cs" />
+    <Compile Include="Graphics\PvrtcRgba4BitmapContent.cs" />
+    <Compile Include="Graphics\Font\SharpFontImporter.cs" />
+    <Compile Include="Graphics\SkinnedMaterialContent.cs" />
+    <Compile Include="Graphics\Texture2DContent.cs" />
+    <Compile Include="Graphics\Texture3DContent.cs" />
+    <Compile Include="Graphics\TextureContent.cs" />
+    <Compile Include="Graphics\TextureCubeContent.cs" />
+    <Compile Include="Graphics\TextureReferenceDictionary.cs" />
+    <Compile Include="Graphics\VertexChannel.cs" />
+    <Compile Include="Graphics\VertexChannelCollection.cs" />
+    <Compile Include="Graphics\VertexChannelGeneric.cs" />
+    <Compile Include="Graphics\VertexChannelNames.cs" />
+    <Compile Include="Graphics\VertexContent.cs" />
+    <Compile Include="Processors\CompiledEffectContent.cs" />
+    <Compile Include="Processors\EffectProcessor.cs" />
+    <Compile Include="Processors\EffectProcessorDebugMode.cs" />
+    <Compile Include="Processors\FontDescriptionProcessor.cs" />
+    <Compile Include="Processors\FontTextureProcessor.cs" />
+    <Compile Include="Processors\MaterialProcessor.cs" />
+    <Compile Include="Processors\MaterialProcessorDefaultEffect.cs" />
+    <Compile Include="Processors\ModelBoneContent.cs" />
+    <Compile Include="Processors\ModelBoneContentCollection.cs" />
+    <Compile Include="Processors\ModelContent.cs" />
+    <Compile Include="Processors\ModelMeshContent.cs" />
+    <Compile Include="Processors\ModelMeshContentCollection.cs" />
+    <Compile Include="Processors\ModelMeshPartContent.cs" />
+    <Compile Include="Processors\ModelMeshPartContentCollection.cs" />
+    <Compile Include="Processors\ModelProcessor.cs" />
+    <Compile Include="Processors\PassThroughProcessor.cs" />
+    <Compile Include="Processors\SongContent.cs" />
+    <Compile Include="Processors\SongProcessor.cs" />
+    <Compile Include="Processors\SoundEffectContent.cs" />
+    <Compile Include="Processors\SoundEffectProcessor.cs" />
+    <Compile Include="Processors\SpriteFontContent.cs" />
+    <Compile Include="Processors\TextureProcessor.cs" />
+    <Compile Include="Processors\TextureProcessorOutputFormat.cs" />
+    <Compile Include="Processors\VertexBufferContent.cs" />
+    <Compile Include="Processors\VertexDeclarationContent.cs" />
+    <Compile Include="Processors\VideoProcessor.cs" />
+    <Compile Include="Serialization\Compiler\AlphaTestEffectWriter.cs" />
+    <Compile Include="Serialization\Compiler\ArrayWriter.cs" />
+    <Compile Include="Serialization\Compiler\BasicEffectWriter.cs" />
+    <Compile Include="Serialization\Compiler\BooleanWriter.cs" />
+    <Compile Include="Serialization\Compiler\BoundingBoxWriter.cs" />
+    <Compile Include="Serialization\Compiler\BoundingFrustumWriter.cs" />
+    <Compile Include="Serialization\Compiler\BoundingSphereWriter.cs" />
+    <Compile Include="Serialization\Compiler\BuiltInContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\ByteWriter.cs" />
+    <Compile Include="Serialization\Compiler\CharWriter.cs" />
+    <Compile Include="Serialization\Compiler\ColorWriter.cs" />
+    <Compile Include="Serialization\Compiler\ContentCompiler.cs" />
+    <Compile Include="Serialization\Compiler\ContentTypeWriter.cs" />
+    <Compile Include="Serialization\Compiler\ContentTypeWriterAttribute.cs" />
+    <Compile Include="Serialization\Compiler\ContentTypeWriterGeneric.cs" />
+    <Compile Include="Serialization\Compiler\ContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\CurveWriter.cs" />
+    <Compile Include="Serialization\Compiler\DateTimeWriter.cs" />
+    <Compile Include="Serialization\Compiler\DecimalWriter.cs" />
+    <Compile Include="Serialization\Compiler\DictionaryWriter.cs" />
+    <Compile Include="Serialization\Compiler\DoubleWriter.cs" />
+    <Compile Include="Serialization\Compiler\DualTextureEffectWriter.cs" />
+    <Compile Include="Serialization\Compiler\CompiledEffectContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\EnumWriter.cs" />
+    <Compile Include="Serialization\Compiler\EnvironmentMapEffectWriter.cs" />
+    <Compile Include="Serialization\Compiler\ExternalReferenceWriter.cs" />
+    <Compile Include="Serialization\Compiler\IndexBufferWriter.cs" />
+    <Compile Include="Serialization\Compiler\Int16Writer.cs" />
+    <Compile Include="Serialization\Compiler\Int32Writer.cs" />
+    <Compile Include="Serialization\Compiler\Int64Writer.cs" />
+    <Compile Include="Serialization\Compiler\ListWriter.cs" />
+    <Compile Include="Serialization\Compiler\MatrixWriter.cs" />
+    <Compile Include="Serialization\Compiler\ModelWriter.cs" />
+    <Compile Include="Serialization\Compiler\NullableWriter.cs" />
+    <Compile Include="Serialization\Compiler\PlaneWriter.cs" />
+    <Compile Include="Serialization\Compiler\PointWriter.cs" />
+    <Compile Include="Serialization\Compiler\QuaternionWriter.cs" />
+    <Compile Include="Serialization\Compiler\RayWriter.cs" />
+    <Compile Include="Serialization\Compiler\RectangleWriter.cs" />
+    <Compile Include="Serialization\Compiler\ReflectiveWriter.cs" />
+    <Compile Include="Serialization\Compiler\SByteWriter.cs" />
+    <Compile Include="Serialization\Compiler\SingleWriter.cs" />
+    <Compile Include="Serialization\Compiler\SkinnedEffectWriter.cs" />
+    <Compile Include="Serialization\Compiler\SongContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\SoundEffectContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\SpriteFontContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\StringWriter.cs" />
+    <Compile Include="Serialization\Compiler\TextureWriter.cs" />
+    <Compile Include="Serialization\Compiler\Texture2DContentWriter.cs" />
+    <Compile Include="Serialization\Compiler\TextureCubeWriter.cs" />
+    <Compile Include="Serialization\Compiler\TimeSpanWriter.cs" />
+    <Compile Include="Serialization\Compiler\UInt16Writer.cs" />
+    <Compile Include="Serialization\Compiler\UInt32Writer.cs" />
+    <Compile Include="Serialization\Compiler\UInt64Writer.cs" />
+    <Compile Include="Serialization\Compiler\Vector2Writer.cs" />
+    <Compile Include="Serialization\Compiler\Vector3Writer.cs" />
+    <Compile Include="Serialization\Compiler\Vector4Writer.cs" />
+    <Compile Include="Serialization\Compiler\VertexBufferWriter.cs" />
+    <Compile Include="Serialization\Compiler\VertexDeclarationWriter.cs" />
+    <Compile Include="Serialization\Compiler\VideoWriter.cs" />
+    <Compile Include="Serialization\Intermediate\ArraySerializer.cs" />
+    <Compile Include="Serialization\Intermediate\BoolSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ByteSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\CharSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ColorSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ContentTypeSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ContentTypeSerializerAttribute.cs" />
+    <Compile Include="Serialization\Intermediate\ContentTypeSerializerT.cs" />
+    <Compile Include="Serialization\Intermediate\DictionarySerializer.cs" />
+    <Compile Include="Serialization\Intermediate\DoubleSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ElementSerializerT.cs" />
+    <Compile Include="Serialization\Intermediate\EnumSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ExternalReferenceSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\FloatSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\GenericCollectionHelper.cs" />
+    <Compile Include="Serialization\Intermediate\IntermediateReader.cs" />
+    <Compile Include="Serialization\Intermediate\IntermediateSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\IntermediateWriter.cs" />
+    <Compile Include="Serialization\Intermediate\IntSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ListSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\LongSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\MatrixSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\NamedValueDictionarySerializer.cs" />
+    <Compile Include="Serialization\Intermediate\NamespaceAliasHelper.cs" />
+    <Compile Include="Serialization\Intermediate\NonGenericIListSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\NullableSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\PlaneSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\PointSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\QuaternionSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\RectangleSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ReflectiveSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\SByteSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ShortSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\StringSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\UIntSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\ULongSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\UShortSerializer.cs" />
+    <Compile Include="Serialization\Intermediate\Vector2Serializer.cs" />
+    <Compile Include="Serialization\Intermediate\Vector3Serializer.cs" />
+    <Compile Include="Serialization\Intermediate\Vector4Serializer.cs" />
+    <Compile Include="Serialization\Intermediate\TimeSpanSerializer.cs" />
+    <Compile Include="ChildCollection.cs" />
+    <Compile Include="ContentBuildLogger.cs" />
+    <Compile Include="ContentIdentity.cs" />
+    <Compile Include="ContentImporter.cs" />
+    <Compile Include="ContentImporterAttribute.cs" />
+    <Compile Include="ContentImporterContext.cs" />
+    <Compile Include="ContentItem.cs" />
+    <Compile Include="ContentProcessor.cs" />
+    <Compile Include="ContentProcessorAttribute.cs" />
+    <Compile Include="ContentProcessorContext.cs" />
+    <Compile Include="DdsLoader.cs" />
+    <Compile Include="EffectImporter.cs" />
+    <Compile Include="ExternalReference.cs" />
+    <Compile Include="ExternalTool.cs" />
+    <Compile Include="FbxImporter.cs" />
+    <Compile Include="FontDescriptionImporter.cs" />
+    <Compile Include="H264Importer.cs" />
+    <Compile Include="IContentImporter.cs" />
+    <Compile Include="IContentProcessor.cs" />
+    <Compile Include="InvalidContentException.cs" />
+    <Compile Include="Mp3Importer.cs" />
+    <Compile Include="NamedValueDictionary.cs" />
+    <Compile Include="OggImporter.cs" />
+    <Compile Include="OpaqueDataDictionary.cs" />
+    <Compile Include="OpenAssetImporter.cs" />
+    <Compile Include="PipelineComponentScanner.cs" />
+    <Compile Include="PipelineException.cs" />
+    <Compile Include="ProcessorParameter.cs" />
+    <Compile Include="ProcessorParameterCollection.cs" />
+    <Compile Include="TargetPlatform.cs" />
+    <Compile Include="TextureImporter.cs" />
+    <Compile Include="VideoContent.cs" />
+    <Compile Include="WavImporter.cs" />
+    <Compile Include="WmaImporter.cs" />
+    <Compile Include="WmvImporter.cs" />
+    <Compile Include="XImporter.cs" />
+    <Compile Include="XmlImporter.cs" />
+    <Compile Include="Utilities\Vector4Converter.cs" />
+    <Compile Include="Utilities\LZ4\LZ4Codec.cs" />
+    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe.cs" />
+    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe32.Dirty.cs" />
+    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe32HC.Dirty.cs" />
+    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe64.Dirty.cs" />
+    <Compile Include="Utilities\LZ4\LZ4Codec.Unsafe64HC.Dirty.cs" />
   </ItemGroup>
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
+  <ItemGroup />
   <ItemGroup>
     <None Include="..\ThirdParty\Dependencies\NVTT\MacOS\libnvcore.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libnvcore.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\NVTT\MacOS\libnvimage.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libnvimage.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\NVTT\MacOS\libnvmath.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libnvmath.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\NVTT\MacOS\libnvtt.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libnvtt.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\NVTT\Windows\Nvidia.TextureTools.dll.config">
-      <Platforms>MacOS</Platforms>
       <Link>Nvidia.TextureTools.dll.config</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\ThirdParty\Dependencies\ManagedPVRTC\MacOS\libpvrtc.dylib">
-      <Platforms>MacOS</Platforms>
-      <Link>libpvrtc.dylib</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="..\ThirdParty\Dependencies\ManagedPVRTC\ManagedPVRTC.dll.config">
-      <Platforms>MacOS</Platforms>
-      <Link>ManagedPVRTC.dll.config</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\SharpFont\x64\libfreetype.6.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libfreetype.6.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\SharpFont\x64\libpng15.15.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libpng15.15.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\SharpFont\x64\SharpFont.dll.config">
-      <Platforms>MacOS</Platforms>
       <Link>SharpFont.dll.config</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\assimp\AssimpNet.dll.config">
-      <Platforms>MacOS</Platforms>
       <Link>AssimpNet.dll.config</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\assimp\libassimp.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libassimp.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\ffmpeg\MacOS\ffmpeg">
-      <Platforms>MacOS</Platforms>
       <Link>ffmpeg</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\ffmpeg\MacOS\ffprobe">
-      <Platforms>MacOS</Platforms>
       <Link>ffprobe</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\FreeImage.NET\FreeImageNET.dll.config">
-      <Platforms>MacOS</Platforms>
-      <Link>FreeImage.dll.config</Link>
+      <Link>FreeImageNET.dll.config</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
     <None Include="..\ThirdParty\Dependencies\FreeImage.NET\MacOS\libfreeimage.dylib">
-      <Platforms>MacOS</Platforms>
       <Link>libfreeimage.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
-    <None Include="..\ThirdParty\Dependencies\FreeImage.NET\MacOS\libfreeimageplus.dylib">
-      <Platforms>MacOS</Platforms>
-      <Link>libfreeimageplus.dylib</Link>
+    <None Include="..\ThirdParty\Dependencies\PVRTexLibNET\OSX\x86\libPVRTexLibWrapper.dylib">
+      <Link>libPVRTexLibWrapper.dylib</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
+    </None>
+    <None Include="..\ThirdParty\Dependencies\PVRTexLibNET\PVRTexLibNET.dll.config">
+      <Link>PVRTexLibNET.dll.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
+    </None>
+    <None Include="..\ThirdParty\Dependencies\ATI.TextureConverter\ATI.TextureConverter.dll.config">
+      <Link>ATI.TextureConverter.dll.config</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <NativeBinary>True</NativeBinary>
     </None>
   </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <ItemGroup />
+  <Import Project="$(MSBuildExtensionsPath)\Xamarin\Mac\Xamarin.Mac.CSharp.targets" />
+  <PropertyGroup>
+    <_PostBuildHookTimestamp>@(IntermediateAssembly-&gt;'%(FullPath).timestamp')</_PostBuildHookTimestamp>
+  </PropertyGroup>
+  <Target Name="PostBuildHooks" Inputs="@(IntermediateAssembly);@(ReferencePath)" Outputs="@(IntermediateAssembly);$(_PostBuildHookTimestamp)" AfterTargets="CoreCompile" BeforeTargets="AfterCompile">
+    <Touch Files="$(_PostBuildHookTimestamp)" AlwaysCreate="True" />
+  </Target>
   <ItemGroup>
     <ProjectReference Include="..\MonoGame.Framework\MonoGame.Framework.MacOS.csproj">
       <Project>{36C538E6-C32A-4A8D-A39C-566173D7118E}</Project>

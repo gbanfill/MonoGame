@@ -7,9 +7,11 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input.Touch;
 
 #if MONOMAC
+#if PLATFORM_MACOS_LEGACY
 using MonoMac.OpenGL;
-
-
+#else
+using OpenGL;
+#endif
 #elif GLES
 using OpenTK.Graphics.ES20;
 
@@ -59,7 +61,7 @@ namespace Microsoft.Xna.Framework
 
             _supportedOrientations = DisplayOrientation.Default;
 
-#if WINDOWS || MONOMAC || LINUX
+#if WINDOWS || MONOMAC || DESKTOPGL
             _preferredBackBufferHeight = DefaultBackBufferHeight;
             _preferredBackBufferWidth = DefaultBackBufferWidth;
 #else
@@ -258,7 +260,7 @@ namespace Microsoft.Xna.Framework
 
             ((MonoGame.Framework.WinFormsGamePlatform)_game.Platform).ResetWindowBounds();
 
-#elif WINDOWS || LINUX
+#elif DESKTOPGL
             ((OpenTKGamePlatform)_game.Platform).ResetWindowBounds();
 
             //Set the swap interval based on if vsync is desired or not.
@@ -326,7 +328,7 @@ namespace Microsoft.Xna.Framework
             var presentationParameters = new PresentationParameters ();
             presentationParameters.DepthStencilFormat = DepthFormat.Depth24;
 
-#if WINDOWS || WINRT
+#if (WINDOWS || WINRT) && !DESKTOPGL
             _game.Window.SetSupportedOrientations(_supportedOrientations);
 
             presentationParameters.BackBufferFormat = _preferredBackBufferFormat;
@@ -359,10 +361,10 @@ namespace Microsoft.Xna.Framework
 
 #else
 
-#if MONOMAC
+#if MONOMAC || DESKTOPGL
             presentationParameters.IsFullScreen = _wantFullScreen;
-#elif LINUX
-            presentationParameters.IsFullScreen = _wantFullScreen;
+#elif WEB
+            presentationParameters.IsFullScreen = false;
 #else
             // Set "full screen"  as default
             presentationParameters.IsFullScreen = true;
@@ -404,7 +406,7 @@ namespace Microsoft.Xna.Framework
         {
             IsFullScreen = !IsFullScreen;
 
-#if (WINDOWS || WINDOWS_UAP) && DIRECTX
+#if ((WINDOWS || WINDOWS_UAP) && DIRECTX) || DESKTOPGL
             ApplyChanges();
 #endif
         }
