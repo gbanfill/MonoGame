@@ -52,6 +52,9 @@ namespace Microsoft.Xna.Framework.Utilities
             // relative addresses resolved... get the local path.
             var localPath = dst.LocalPath;
 
+            if (relativeFile.Contains("#"))
+                localPath = Path.Combine(localPath.Substring(0, localPath.LastIndexOf('/')), Path.GetFileName(relativeFile));
+
             if (!hasForwardSlash && localPath.StartsWith("/"))
                 localPath = localPath.Substring(1);
 
