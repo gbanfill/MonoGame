@@ -23,7 +23,6 @@
         <file src="GB\lib\MonoAndroid\MonoGame.Framework.dll" target="lib\MonoAndroid\MonoGame.Framework.dll" />
 
 	<!-- netcore for windows universal -->
-  <files>
         <file src="GB\lib\netcore\Themes\generic.xbf" target="lib\netcore\MonoGame.Framework\Themes\generic.xbf" />
         <file src="GB\lib\netcore\MonoGame.Framework.dll" target="lib\netcore\MonoGame.Framework.dll" />
         <file src="GB\lib\netcore\MonoGame.Framework.xml" target="lib\netcore\MonoGame.Framework.xml" />
