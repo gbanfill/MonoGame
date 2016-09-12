@@ -19,6 +19,7 @@ using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml;
 using Windows.UI.Core;
 using Microsoft.Xna.Framework.Input;
+using Windows.UI.Xaml.Controls;
 
 namespace Microsoft.Xna.Framework
 {
@@ -133,10 +134,14 @@ namespace Microsoft.Xna.Framework
 
         public override void StartRunLoop()
         {
+            UAPGameWindow.Instance.IsExiting = false;
             CompositionTarget.Rendering += (o, a) =>
             {
-				UAPGameWindow.Instance.Tick();
-                GamePad.Back = false;
+                if (IsActive)
+                {
+                    UAPGameWindow.Instance.Tick();
+                    GamePad.Back = false;
+                }
             };
         }
         
@@ -145,7 +150,13 @@ namespace Microsoft.Xna.Framework
             if (!UAPGameWindow.Instance.IsExiting)
             {
 				UAPGameWindow.Instance.IsExiting = true;
-                Application.Current.Exit();
+                UAPGameWindow.Instance.Dispose();
+                
+                // this navigates backwards to the previous page
+                Frame f = (Frame)Windows.UI.Xaml.Window.Current.Content;
+                f.GoBack();
+                // Application.Current.Exit();
+                
             }
         }
 
