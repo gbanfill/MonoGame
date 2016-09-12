@@ -19,21 +19,21 @@
     </metadata>
     <files>
 	<!-- Android -->
-        <file src="GB\lib\MonoAndroid\Lidgren.Network.dll" target="lib\MonoAndroid\Lidgren.Network.dll" />
-        <file src="GB\lib\MonoAndroid\MonoGame.Framework.dll" target="lib\MonoAndroid\MonoGame.Framework.dll" />
+        <file src="GB/lib/MonoAndroid/Lidgren.Network.dll" target="lib\MonoAndroid\Lidgren.Network.dll" />
+        <file src="GB/lib/MonoAndroid/MonoGame.Framework.dll" target="lib\MonoAndroid\MonoGame.Framework.dll" />
 
 	<!-- netcore for windows universal -->
-        <file src="GB\lib\netcore\Themes\generic.xbf" target="lib\netcore\MonoGame.Framework\Themes\generic.xbf" />
-        <file src="GB\lib\netcore\MonoGame.Framework.dll" target="lib\netcore\MonoGame.Framework.dll" />
-        <file src="GB\lib\netcore\MonoGame.Framework.xml" target="lib\netcore\MonoGame.Framework.xml" />
-        <file src="GB\lib\netcore\MonoGame.Framework.pri" target="lib\netcore\MonoGame.Framework.pri" />
-        <file src="GB\lib\netcore\MonoGame.Framework.xr.xml" target="lib\netcore\MonoGame.Framework\MonoGame.Framework.xr.xml" />
-        <file src="GB\lib\netcore\SharpDX.Direct2D1.dll" target="lib\netcore\SharpDX.Direct2D1.dll" />
-        <file src="GB\lib\netcore\SharpDX.Direct3D11.dll" target="lib\netcore\SharpDX.Direct3D11.dll" />
-        <file src="GB\lib\netcore\SharpDX.dll" target="lib\netcore\SharpDX.dll" />
-        <file src="GB\lib\netcore\SharpDX.DXGI.dll" target="lib\netcore\SharpDX.DXGI.dll" />
-        <file src="GB\lib\netcore\SharpDX.MediaFoundation.dll" target="lib\netcore\SharpDX.MediaFoundation.dll" />
-        <file src="GB\lib\netcore\SharpDX.XAudio2.dll" target="lib\netcore\SharpDX.XAudio2.dll" />
+        <file src="GB/lib/netcore/Themes/generic.xbf" target="lib\netcore\MonoGame.Framework\Themes\generic.xbf" />
+        <file src="GB/lib/netcore/MonoGame.Framework.dll" target="lib\netcore\MonoGame.Framework.dll" />
+        <file src="GB/lib/netcore/MonoGame.Framework.xml" target="lib\netcore\MonoGame.Framework.xml" />
+        <file src="GB/lib/netcore/MonoGame.Framework.pri" target="lib\netcore\MonoGame.Framework.pri" />
+        <file src="GB/lib/netcore/MonoGame.Framework.xr.xml" target="lib\netcore\MonoGame.Framework\MonoGame.Framework.xr.xml" />
+        <file src="GB/lib/netcore/SharpDX.Direct2D1.dll" target="lib\netcore\SharpDX.Direct2D1.dll" />
+        <file src="GB/lib/netcore/SharpDX.Direct3D11.dll" target="lib\netcore\SharpDX.Direct3D11.dll" />
+        <file src="GB/lib/netcore/SharpDX.dll" target="lib\netcore\SharpDX.dll" />
+        <file src="GB/lib/netcore/SharpDX.DXGI.dll" target="lib\netcore\SharpDX.DXGI.dll" />
+        <file src="GB/lib/netcore/SharpDX.MediaFoundation.dll" target="lib\netcore\SharpDX.MediaFoundation.dll" />
+        <file src="GB/lib/netcore/SharpDX.XAudio2.dll" target="lib\netcore\SharpDX.XAudio2.dll" />
 		
 
 	<!-- iOS -->
