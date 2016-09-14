@@ -419,6 +419,8 @@ namespace Microsoft.Xna.Framework.Graphics
                     // By default we scale the backbuffer to the window 
                     // rectangle to function more like a WP7 game.
                     Scaling = SharpDX.DXGI.Scaling.Stretch,
+
+                    AlphaMode = AlphaMode.Premultiplied
                 };
 
                 // Once the desired swap chain description is configured, it must be created on the same adapter as our D3D Device
