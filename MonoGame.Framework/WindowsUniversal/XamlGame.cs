@@ -64,7 +64,7 @@ namespace MonoGame.Framework
             game.graphicsDeviceManager.SwapChainPanel = swapChainPanel;
 
             // Start running the game.
-            game.Run(GameRunBehavior.Asynchronous);
+          ///  game.Run(GameRunBehavior.Asynchronous);
 
             // Return the created game object.
             return game;
