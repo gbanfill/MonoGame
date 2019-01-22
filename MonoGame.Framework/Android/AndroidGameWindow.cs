@@ -55,7 +55,7 @@ namespace Microsoft.Xna.Framework
         }
 
 
-         
+       public static bool InTransparentMode { get; set; }
 
         private void Initialize(Context context, Point size)
         {
@@ -82,11 +82,7 @@ namespace Microsoft.Xna.Framework
 
         private void OnRenderFrame(object sender, MonoGameAndroidGameView.FrameEventArgs frameEventArgs)
         {
-            if (GameView.GraphicsContext == null || GameView.GraphicsContext.IsDisposed)
-                return;
-
             GameView.MakeCurrent();
-
 
             Threading.Run();
         }
