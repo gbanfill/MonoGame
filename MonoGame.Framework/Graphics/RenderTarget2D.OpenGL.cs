@@ -2,34 +2,39 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
-#if MONOMAC
-#if PLATFORM_MACOS_LEGACY
-using MonoMac.OpenGL;
-#else
-using OpenGL;
-#endif
-#elif DESKTOPGL
-using OpenTK.Graphics.OpenGL;
+using MonoGame.OpenGL;
 using System;
 using System.Collections.Generic;
-#elif GLES
-using OpenTK.Graphics.ES20;
-#endif
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     public partial class RenderTarget2D
     {
-        internal int glColorBuffer;
-        internal int glDepthBuffer;
-        internal int glStencilBuffer;
+        int IRenderTarget.GLTexture
+        {
+            get { return glTexture; }
+        }
+
+        TextureTarget IRenderTarget.GLTarget
+        {
+            get { return glTarget; }
+        }
+
+        int IRenderTarget.GLColorBuffer { get; set; }
+        int IRenderTarget.GLDepthBuffer { get; set; }
+        int IRenderTarget.GLStencilBuffer { get; set; }
+
+        TextureTarget IRenderTarget.GetFramebufferTarget(RenderTargetBinding renderTargetBinding)
+        {
+            return glTarget;
+        }
 
         private void PlatformConstruct(GraphicsDevice graphicsDevice, int width, int height, bool mipMap,
-            SurfaceFormat preferredFormat, DepthFormat preferredDepthFormat, int preferredMultiSampleCount, RenderTargetUsage usage, bool shared)
+            DepthFormat preferredDepthFormat, int preferredMultiSampleCount, RenderTargetUsage usage, bool shared)
         {
             Threading.BlockOnUIThread(() =>
             {
-                graphicsDevice.PlatformCreateRenderTarget(this, width, height, mipMap, preferredFormat, preferredDepthFormat, preferredMultiSampleCount, usage);
+                graphicsDevice.PlatformCreateRenderTarget(this, width, height, mipMap, this.Format, preferredDepthFormat, preferredMultiSampleCount, usage);
             });
             
             
@@ -43,10 +48,13 @@ namespace Microsoft.Xna.Framework.Graphics
         {
             if (!IsDisposed)
             {
-                Threading.BlockOnUIThread(() =>
+                if (GraphicsDevice != null)
                 {
-                    this.GraphicsDevice.PlatformDeleteRenderTarget(this);
-                });
+                    Threading.BlockOnUIThread(() =>
+                    {
+                        this.GraphicsDevice.PlatformDeleteRenderTarget(this);
+                    });
+                }
             }
 
             base.Dispose(disposing);

@@ -2,16 +2,14 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
+
 using System;
 using Android.Content;
 using Android.Content.PM;
+using Android.OS;
 using Android.Views;
 using Microsoft.Xna.Framework.Input.Touch;
-using OpenTK;
-
-#if OUYA
-using Microsoft.Xna.Framework.Input;
-#endif
+using MonoGame.OpenGL;
 
 namespace Microsoft.Xna.Framework
 {
@@ -37,17 +35,32 @@ namespace Microsoft.Xna.Framework
         public AndroidGameWindow(AndroidGameActivity activity, Game game)
         {
             _game = game;
-            Initialize(activity);
+             Point size;
+            if (Build.VERSION.SdkInt < BuildVersionCodes.JellyBean)
+            {
+                size.X = activity.Resources.DisplayMetrics.WidthPixels;
+                size.Y = activity.Resources.DisplayMetrics.HeightPixels;
+            }
+            else
+            {
+                Android.Graphics.Point p = new Android.Graphics.Point();
+                activity.WindowManager.DefaultDisplay.GetRealSize(p);
+                size.X = p.X;
+                size.Y = p.Y;
+            }
+
+            Initialize(activity, size);
 
             game.Services.AddService(typeof(View), GameView);
         }
 
-        public static bool InTransparentMode { get; set; }
 
-        private void Initialize(Context context)
+         
+
+        private void Initialize(Context context, Point size)
         {
-            _clientBounds = new Rectangle(0, 0, context.Resources.DisplayMetrics.WidthPixels, context.Resources.DisplayMetrics.HeightPixels);
-
+            _clientBounds = new Rectangle(0, 0, size.X, size.Y);
+            
             if (InTransparentMode)
             {
                 GameView = new TransparentMonoGameView(context, this, _game);
@@ -56,35 +69,32 @@ namespace Microsoft.Xna.Framework
             {
                 GameView = new MonoGameAndroidGameView(context, this, _game);
             }
+           
             GameView.RenderOnUIThread = Game.Activity.RenderOnUIThread;
             GameView.RenderFrame += OnRenderFrame;
             GameView.UpdateFrame += OnUpdateFrame;
 
             GameView.RequestFocus();
             GameView.FocusableInTouchMode = true;
-
-#if OUYA
-            GamePad.Initialize();
-#endif
         }
 
         #region AndroidGameView Methods
 
-        private void OnRenderFrame(object sender, FrameEventArgs frameEventArgs)
+        private void OnRenderFrame(object sender, MonoGameAndroidGameView.FrameEventArgs frameEventArgs)
         {
             if (GameView.GraphicsContext == null || GameView.GraphicsContext.IsDisposed)
                 return;
 
-            if (!GameView.GraphicsContext.IsCurrent)
-                GameView.MakeCurrent();
+            GameView.MakeCurrent();
+
 
             Threading.Run();
         }
 
-        private void OnUpdateFrame(object sender, FrameEventArgs frameEventArgs)
+
+        private void OnUpdateFrame(object sender, MonoGameAndroidGameView.FrameEventArgs frameEventArgs)
         {
-            if (!GameView.GraphicsContext.IsCurrent)
-                GameView.MakeCurrent();
+            GameView.MakeCurrent();
 
             Threading.Run();
 
@@ -173,23 +183,24 @@ namespace Microsoft.Xna.Framework
                 _game.graphicsDeviceManager.ApplyChanges();
         }
 
-        public override string ScreenDeviceName 
+        public override string ScreenDeviceName
         {
-            get 
+            get
             {
-                throw new NotImplementedException ();
+                throw new NotImplementedException();
             }
         }
-   
 
-        public override Rectangle ClientBounds 
+
+        public override Rectangle ClientBounds
         {
-            get 
+            get
             {
                 return _clientBounds;
             }
         }
-        
+
+
         internal void ChangeClientBounds(Rectangle bounds)
         {
             if (bounds != _clientBounds)
@@ -199,13 +210,13 @@ namespace Microsoft.Xna.Framework
             }
         }
 
-        public override bool AllowUserResizing 
+        public override bool AllowUserResizing
         {
-            get 
+            get
             {
                 return false;
             }
-            set 
+            set
             {
                 // Do nothing; Ignore rather than raising an exception
             }
@@ -310,7 +321,6 @@ namespace Microsoft.Xna.Framework
                         TouchPanelState.ReleaseAllTouches();
                     }
 
-                    Game.Activity.RequestedOrientation = requestedOrientation;
 
                     OnOrientationChanged();
                 }

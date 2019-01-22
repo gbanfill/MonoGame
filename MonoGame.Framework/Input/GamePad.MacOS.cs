@@ -4,8 +4,6 @@
 
 using System;
 
-#if !PLATFORM_MACOS_LEGACY
-
 namespace Microsoft.Xna.Framework.Input
 {
     /// <summary> 
@@ -23,7 +21,7 @@ namespace Microsoft.Xna.Framework.Input
             return new GamePadCapabilities { IsConnected = false };
         }
                
-        private static GamePadState PlatformGetState(int index, GamePadDeadZone deadZoneMode)
+        private static GamePadState PlatformGetState(int index, GamePadDeadZone leftDeadZoneMode, GamePadDeadZone rightDeadZoneMode)
         {
             return new GamePadState() { IsConnected = false };
         }
@@ -35,4 +33,3 @@ namespace Microsoft.Xna.Framework.Input
     }
 }
 
-#endif

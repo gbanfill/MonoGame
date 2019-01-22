@@ -14,6 +14,7 @@ using Microsoft.Xna.Framework.Input.Touch;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.Core;
+using Windows.System.Threading;
 using Windows.UI.ViewManagement;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml;
@@ -24,7 +25,6 @@ namespace Microsoft.Xna.Framework
 {
     class UAPGamePlatform : GamePlatform
     {
-		//private OpenALSoundController soundControllerInstance = null;
         internal static string LaunchParameters;
 
         internal static readonly TouchQueue TouchQueue = new TouchQueue();
@@ -37,6 +37,7 @@ namespace Microsoft.Xna.Framework
             // Setup the game window.
             Window = UAPGameWindow.Instance;
 			UAPGameWindow.Instance.Game = game;
+            UAPGameWindow.Instance.RegisterCoreWindowService();
 
             // Setup the launch parameters.
             // - Parameters can optionally start with a forward slash.
@@ -97,8 +98,6 @@ namespace Microsoft.Xna.Framework
                 }
             }
 
-            SystemNavigationManager.GetForCurrentView().BackRequested += BackRequested;
-
             CoreApplication.Suspending += this.CoreApplication_Suspending;
 
             Game.PreviousExecutionState = PreviousExecutionState;
@@ -115,17 +114,6 @@ namespace Microsoft.Xna.Framework
             get { return GameRunBehavior.Synchronous; }
         }
 
-        private static void BackRequested(object sender, BackRequestedEventArgs e)
-        {
-            // We need to manually hide the keyboard input UI when the back button is pressed
-            if (KeyboardInput.IsVisible)
-                KeyboardInput.Cancel(null);
-            else
-                GamePad.Back = true;
-
-            e.Handled = true;
-        }
-
         public override void RunLoop()
         {
             UAPGameWindow.Instance.RunLoop();
@@ -133,11 +121,14 @@ namespace Microsoft.Xna.Framework
 
         public override void StartRunLoop()
         {
-            CompositionTarget.Rendering += (o, a) =>
+            var workItemHandler = new WorkItemHandler((action) =>
             {
-				UAPGameWindow.Instance.Tick();
-                GamePad.Back = false;
-            };
+                while (true)
+                {
+                    UAPGameWindow.Instance.Tick();
+                }
+            });
+            var tickWorker = ThreadPool.RunAsync(workItemHandler, WorkItemPriority.High, WorkItemOptions.TimeSliced);
         }
         
         public override void Exit()
@@ -172,15 +163,23 @@ namespace Microsoft.Xna.Framework
 
         public override void EnterFullScreen()
         {
-            ApplicationView.GetForCurrentView().TryEnterFullScreenMode();
+            UAPGameWindow.Instance.AppView.TryEnterFullScreenMode();
 		}
 
 		public override void ExitFullScreen()
         {
-            ApplicationView.GetForCurrentView().ExitFullScreenMode();
+            UAPGameWindow.Instance.AppView.ExitFullScreenMode();
         }
 
-		public override void EndScreenDeviceChange(string screenDeviceName, int clientWidth, int clientHeight)
+        internal override void OnPresentationChanged(PresentationParameters pp)
+        {
+            if (pp.IsFullScreen)
+                EnterFullScreen();
+            else
+                ExitFullScreen();
+        }
+
+        public override void EndScreenDeviceChange(string screenDeviceName, int clientWidth, int clientHeight)
         {
         }
 

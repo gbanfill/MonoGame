@@ -6,7 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Utilities;
+using MonoGame.Utilities;
 
 namespace Microsoft.Xna.Framework.Content
 {
@@ -74,6 +74,19 @@ namespace Microsoft.Xna.Framework.Content
             // Read shared resources
             ReadSharedResources();
             
+            return result;
+        }
+
+        internal object ReadAsset<T>(T existingInstance)
+        {
+            InitializeTypeReaders();
+
+            // Read primary object
+            object result = ReadObject<T>(existingInstance);
+
+            // Read shared resources
+            ReadSharedResources();
+
             return result;
         }
 
@@ -147,7 +160,7 @@ namespace Microsoft.Xna.Framework.Content
 
         public T ReadObject<T>()
         {
-            return ReadObject(default(T));
+            return InnerReadObject(default(T));
         }
 
         public T ReadObject<T>(ContentTypeReader typeReader)
