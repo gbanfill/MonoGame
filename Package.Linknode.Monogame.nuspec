@@ -23,7 +23,7 @@
         <file src="GB/lib/MonoAndroid/MonoGame.Framework.dll" target="lib/MonoAndroid/MonoGame.Framework.dll" />
 
 	<!-- netcore for windows universal -->
-        <file src="GB/lib/netcore/Themes/generic.xbf" target="lib/netcore/MonoGame.Framework/Themes/generic.xbf" />
+    <!--    <file src="GB/lib/netcore/Themes/generic.xbf" target="lib/netcore/MonoGame.Framework/Themes/generic.xbf" />
         <file src="GB/lib/netcore/MonoGame.Framework.dll" target="lib/netcore/MonoGame.Framework.dll" />
         <file src="GB/lib/netcore/MonoGame.Framework.xml" target="lib/netcore/MonoGame.Framework.xml" />
         <file src="GB/lib/netcore/MonoGame.Framework.pri" target="lib/netcore/MonoGame.Framework.pri" />
@@ -34,6 +34,7 @@
         <file src="GB/lib/netcore/SharpDX.DXGI.dll" target="lib/netcore/SharpDX.DXGI.dll" />
         <file src="GB/lib/netcore/SharpDX.MediaFoundation.dll" target="lib/netcore/SharpDX.MediaFoundation.dll" />
         <file src="GB/lib/netcore/SharpDX.XAudio2.dll" target="lib/netcore/SharpDX.XAudio2.dll" />
+    -->
 		
 
 	<!-- iOS -->
