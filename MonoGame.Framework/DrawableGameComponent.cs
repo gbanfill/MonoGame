@@ -1,116 +1,122 @@
-#region License
-/*
-Microsoft Public License (Ms-PL)
-MonoGame - Copyright © 2009 The MonoGame Team
-
-All rights reserved.
-
-This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
-accept the license, do not use the software.
-
-1. Definitions
-The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
-U.S. copyright law.
-
-A "contribution" is the original software, or any additions or changes to the software.
-A "contributor" is any person that distributes its contribution under this license.
-"Licensed patents" are a contributor's patent claims that read directly on its contribution.
-
-2. Grant of Rights
-(A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
-(B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
-
-3. Conditions and Limitations
-(A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
-(B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
-your patent license from such contributor to the software ends automatically.
-(C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
-notices that are present in the software.
-(D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
-a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
-code form, you may only do so under a license that complies with this license.
-(E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
-or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
-permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
-purpose and non-infringement.
-*/
-#endregion License
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 using System;
 
 namespace Microsoft.Xna.Framework
 {
+    /// <summary>
+    /// A <see cref="GameComponent"/> that is drawn when its <see cref="Game"/> is drawn.
+    /// </summary>
     public class DrawableGameComponent : GameComponent, IDrawable
     {
-        private bool _isInitialized;
-        private bool _isVisible;
+        private bool _initialized;
+        private bool _disposed;
         private int _drawOrder;
+        private bool _visible = true;
 
-        public event EventHandler<EventArgs> DrawOrderChanged;
-        public event EventHandler<EventArgs> VisibleChanged;
-
-        public DrawableGameComponent(Game game)
-            : base(game)
+        /// <summary>
+        /// Get the <see cref="GraphicsDevice"/> that this <see cref="DrawableGameComponent"/> uses for drawing.
+        /// </summary>
+        public Graphics.GraphicsDevice GraphicsDevice
         {
-            Visible = true;
+            get { return this.Game.GraphicsDevice; } 
         }
-
-        public override void Initialize()
-        {
-            if (!_isInitialized)
-            {
-                _isInitialized = true;
-                LoadContent();
-            }
-        }
-
-        protected virtual void LoadContent()
-        {
-        }
-
-        protected virtual void UnloadContent()
-        {
-        }
-
-        #region IDrawable Members
 
         public int DrawOrder
         {
             get { return _drawOrder; }
             set
             {
-                _drawOrder = value;
-                if(DrawOrderChanged != null)
-                    DrawOrderChanged(this, null);
-
-                OnDrawOrderChanged(this, null);
+                if (_drawOrder != value)
+                {
+                    _drawOrder = value;
+                    OnDrawOrderChanged(this, EventArgs.Empty);
+                }
             }
         }
 
         public bool Visible
         {
-            get { return _isVisible; }
+            get { return _visible; }
             set
             {
-                if (_isVisible != value)
+                if (_visible != value)
                 {
-                    _isVisible = value;
-
-                    var handler = VisibleChanged;
-                    if (handler != null)
-                        handler(this, EventArgs.Empty);
-
+                    _visible = value;
                     OnVisibleChanged(this, EventArgs.Empty);
                 }
             }
         }
 
-        public virtual void Draw(GameTime gameTime) { }
-        protected virtual void OnVisibleChanged(object sender, EventArgs args) { }
-        protected virtual void OnDrawOrderChanged(object sender, EventArgs args) { }
+        /// <inheritdoc />
+        public event EventHandler<EventArgs> DrawOrderChanged;
 
-        #endregion
+        /// <inheritdoc />
+        public event EventHandler<EventArgs> VisibleChanged;
+
+        /// <summary>
+        /// Create a <see cref="DrawableGameComponent"/>.
+        /// </summary>
+        /// <param name="game">The game that this component will belong to.</param>
+        public DrawableGameComponent(Game game)
+            : base(game)
+        {
+        }
+
+        public override void Initialize()
+        {
+            if (!_initialized)
+            {
+                _initialized = true;
+                LoadContent();
+            }
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                _disposed = true;
+                UnloadContent();
+            }
+        }
+
+        /// <summary>
+        /// Load graphical resources needed by this component.
+        /// </summary>
+        protected virtual void LoadContent() { }
+
+        /// <summary>
+        /// Unload graphical resources needed by this component.
+        /// </summary>
+        protected virtual void UnloadContent () { }
+
+        /// <summary>
+        /// Draw this component.
+        /// </summary>
+        /// <param name="gameTime">The time elapsed since the last call to <see cref="Draw"/>.</param>
+        public virtual void Draw(GameTime gameTime) { }
+
+        /// <summary>
+        /// Called when <see cref="Visible"/> changed.
+        /// </summary>
+        /// <param name="sender">This <see cref="DrawableGameComponent"/>.</param>
+        /// <param name="args">Arguments to the <see cref="VisibleChanged"/> event.</param>
+        protected virtual void OnVisibleChanged(object sender, EventArgs args)
+        {
+            EventHelpers.Raise(sender, VisibleChanged, args);
+        }
+
+        /// <summary>
+        /// Called when <see cref="DrawOrder"/> changed.
+        /// </summary>
+        /// <param name="sender">This <see cref="DrawableGameComponent"/>.</param>
+        /// <param name="args">Arguments to the <see cref="DrawOrderChanged"/> event.</param>
+        protected virtual void OnDrawOrderChanged(object sender, EventArgs args)
+        {
+            EventHelpers.Raise(sender, DrawOrderChanged, args);
+        }
     }
 }

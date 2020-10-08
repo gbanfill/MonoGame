@@ -1,205 +1,190 @@
-#region License
-/*
-Microsoft Public License (Ms-PL)
-MonoGame - Copyright © 2009 The MonoGame Team
-
-All rights reserved.
-
-This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
-accept the license, do not use the software.
-
-1. Definitions
-The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
-U.S. copyright law.
-
-A "contribution" is the original software, or any additions or changes to the software.
-A "contributor" is any person that distributes its contribution under this license.
-"Licensed patents" are a contributor's patent claims that read directly on its contribution.
-
-2. Grant of Rights
-(A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
-(B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
-
-3. Conditions and Limitations
-(A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
-(B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
-your patent license from such contributor to the software ends automatically.
-(C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
-notices that are present in the software.
-(D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
-a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
-code form, you may only do so under a license that complies with this license.
-(E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
-or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
-permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
-purpose and non-infringement.
-*/
-#endregion License
-
-// Original source from SilverSprite project at http://silversprite.codeplex.com
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
-
-using Microsoft.Xna.Framework.Content;
+using MonoGame.Framework.Utilities;
 
 namespace Microsoft.Xna.Framework.Content
 {
     internal class ReflectiveReader<T> : ContentTypeReader
     {
-        ConstructorInfo constructor;
-        PropertyInfo[] properties;
-        FieldInfo[] fields;
-        ContentTypeReaderManager manager;
-		
-		Type targetType;
-		Type baseType;
-		ContentTypeReader baseTypeReader;
+        delegate void ReadElement(ContentReader input, object parent);
 
-        internal ReflectiveReader() : base(typeof(T))
+        private List<ReadElement> _readers;
+
+        private ConstructorInfo _constructor;
+
+        private ContentTypeReader _baseTypeReader;
+
+
+        public ReflectiveReader() 
+            : base(typeof(T))
         {
-			targetType = typeof(T);
+        }
+
+        public override bool CanDeserializeIntoExistingObject
+        {
+            get { return TargetType.IsClass(); }
         }
 
         protected internal override void Initialize(ContentTypeReaderManager manager)
         {
             base.Initialize(manager);
-            this.manager = manager;
-			
-			if(targetType.BaseType != null && targetType.BaseType != typeof(object))
-			{
-				baseType = targetType.BaseType;
-				baseTypeReader = manager.GetTypeReader(baseType);
-			}
-			
-            BindingFlags attrs = BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-			constructor = targetType.GetConstructor(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, new Type[0], null);
-            properties = targetType.GetProperties(attrs);
-            fields = targetType.GetFields(attrs);
+
+            var baseType = ReflectionHelpers.GetBaseType(TargetType);
+            if (baseType != null && baseType != typeof(object))
+				_baseTypeReader = manager.GetTypeReader(baseType);
+
+            _constructor = TargetType.GetDefaultConstructor();
+
+            var properties = TargetType.GetAllProperties();
+            var fields = TargetType.GetAllFields();
+            _readers = new List<ReadElement>(fields.Length + properties.Length);
+
+            // Gather the properties.
+            foreach (var property in properties)
+            {
+                var read = GetElementReader(manager, property);
+                if (read != null)
+                    _readers.Add(read);
+            }
+            
+            // Gather the fields.
+            foreach (var field in fields)
+            {
+                var read = GetElementReader(manager, field);
+                if (read != null)
+                    _readers.Add(read);
+            }
         }
 
-        object CreateChildObject(PropertyInfo property, FieldInfo field)
+        private static ReadElement GetElementReader(ContentTypeReaderManager manager, MemberInfo member)
         {
-            object obj = null;
-            Type t;
+            var property = member as PropertyInfo;
+            var field = member as FieldInfo;
+            Debug.Assert(field != null || property != null);
+
             if (property != null)
             {
-                t = property.PropertyType;
-            }
-            else
-            {
-                t = field.FieldType;
-            }
-            if (t.IsClass && !t.IsAbstract)
-            {
-                ConstructorInfo constructor = t.GetConstructor(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, new Type[0], null);
-                if (constructor != null)
-                {
-                    obj = constructor.Invoke(null);                
-                }
-            }
-            return obj;
-        }
+                // Properties must have at least a getter.
+                if (property.CanRead == false)
+                    return null;
 
-        private void Read(object parent, ContentReader input, MemberInfo member)
-        {
-            PropertyInfo property = member as PropertyInfo;
-            FieldInfo field = member as FieldInfo;
-            if (property != null && property.CanWrite == false) return;
-            Attribute attr = Attribute.GetCustomAttribute(member, typeof(ContentSerializerIgnoreAttribute));
-            if (attr != null) return;
-            Attribute attr2 = Attribute.GetCustomAttribute(member, typeof(ContentSerializerAttribute));
-            bool isSharedResource = false;
-            if (attr2 != null)
-            {
-                var cs = attr2 as ContentSerializerAttribute;
-                isSharedResource = cs.SharedResource;
+                // Skip over indexer properties.
+                if (property.GetIndexParameters().Any())
+                    return null;
             }
-            else
+
+            // Are we explicitly asked to ignore this item?
+            if (ReflectionHelpers.GetCustomAttribute<ContentSerializerIgnoreAttribute>(member) != null) 
+                return null;
+
+            var contentSerializerAttribute = ReflectionHelpers.GetCustomAttribute<ContentSerializerAttribute>(member);
+            if (contentSerializerAttribute == null)
             {
                 if (property != null)
                 {
-                    foreach (MethodInfo info in property.GetAccessors(true))
+                    // There is no ContentSerializerAttribute, so non-public
+                    // properties cannot be deserialized.
+                    if (!ReflectionHelpers.PropertyIsPublic(property))
+                        return null;
+
+                    // If the read-only property has a type reader,
+                    // and CanDeserializeIntoExistingObject is true,
+                    // then it is safe to deserialize into the existing object.
+                    if (!property.CanWrite)
                     {
-                        if (info.IsPublic == false)
-                            return;
+                        var typeReader = manager.GetTypeReader(property.PropertyType);
+                        if (typeReader == null || !typeReader.CanDeserializeIntoExistingObject)
+                            return null;
                     }
                 }
                 else
                 {
+                    // There is no ContentSerializerAttribute, so non-public
+                    // fields cannot be deserialized.
                     if (!field.IsPublic)
-                        return;
+                        return null;
+
+                    // evolutional: Added check to skip initialise only fields
+                    if (field.IsInitOnly)
+                        return null;
                 }
             }
-            ContentTypeReader reader = null;
+
+            Action<object, object> setter;
+            Type elementType;
             if (property != null)
             {
-                reader = manager.GetTypeReader(property.PropertyType);
-            }
-            else
-            {
-                reader = manager.GetTypeReader(field.FieldType);
-            }
-            if (!isSharedResource)
-            {
-                object existingChildObject = CreateChildObject(property, field);
-                object obj2 = null;
-				
-                obj2 = input.ReadObject<object>(reader, existingChildObject);
-				
-                if (property != null)
-                {
-                    property.SetValue(parent, obj2, null);
-                }
+                elementType = property.PropertyType;
+                if (property.CanWrite)
+                    setter = (o, v) => property.SetValue(o, v, null);
                 else
-                {
-                    // Private fields can be serialized if they have ContentSerializerAttribute added to them
-                    if (field.IsPrivate == false || attr2 != null)
-                        field.SetValue(parent, obj2);
-                }
+                    setter = (o, v) => { };
             }
             else
             {
-                Action<object> action = delegate(object value)
-                {
-                    if (property != null)
-                    {
-                        property.SetValue(parent, value, null);
-                    }
-                    else
-                    {
-                        field.SetValue(parent, value);
-                    }
-                };
-                input.ReadSharedResource<object>(action);
+                elementType = field.FieldType;
+                setter = field.SetValue;
             }
+
+            // Shared resources get special treatment.
+            if (contentSerializerAttribute != null && contentSerializerAttribute.SharedResource)
+            {
+                return (input, parent) =>
+                {
+                    Action<object> action = value => setter(parent, value);
+                    input.ReadSharedResource(action);
+                };
+            }
+
+            // We need to have a reader at this point.
+            var reader = manager.GetTypeReader(elementType);
+            if (reader == null)
+                if (elementType == typeof(System.Array))
+                    reader = new ArrayReader<Array>();
+                else
+                    throw new ContentLoadException(string.Format("Content reader could not be found for {0} type.", elementType.FullName));
+
+            // We use the construct delegate to pick the correct existing 
+            // object to be the target of deserialization.
+            Func<object, object> construct = parent => null;
+            if (property != null && !property.CanWrite)
+                construct = parent => property.GetValue(parent, null);
+
+            return (input, parent) =>
+            {
+                var existing = construct(parent);
+                var obj2 = input.ReadObject(reader, existing);
+                setter(parent, obj2);
+            };
         }
-        
+      
         protected internal override object Read(ContentReader input, object existingInstance)
         {
             T obj;
             if (existingInstance != null)
-            {
                 obj = (T)existingInstance;
-            }
             else
-            {
-                obj = (constructor == null ? (T)Activator.CreateInstance(typeof(T), false) : (T)constructor.Invoke(null));
-            }
-			
-			if(baseTypeReader != null)
-				baseTypeReader.Read(input, obj);
-			
-            foreach (PropertyInfo property in properties)
-            {
-                Read(obj, input, property);
-            }
-            foreach (FieldInfo field in fields)
-            {
-                Read(obj, input, field);
-            }
+                obj = (_constructor == null ? (T)Activator.CreateInstance(typeof(T)) : (T)_constructor.Invoke(null));
+		
+			if(_baseTypeReader != null)
+				_baseTypeReader.Read(input, obj);
+
+            // Box the type.
+            var boxed = (object)obj;
+
+            foreach (var reader in _readers)
+                reader(input, boxed);
+
+            // Unbox it... required for value types.
+            obj = (T)boxed;
+
             return obj;
         }
     }

@@ -1,48 +1,24 @@
-#region License
-/*
-MIT License
-Copyright © 2006 The Mono.Xna Team
-
-All rights reserved.
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
-#endregion License
+// MIT License - Copyright (C) The Mono.Xna Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Framework.Utilities;
 
 namespace Microsoft.Xna.Framework.Content
 {
     public sealed class ContentReader : BinaryReader
     {
         private ContentManager contentManager;
+        private Action<IDisposable> recordDisposableObject;
         private ContentTypeReaderManager typeReaderManager;
-        private GraphicsDevice graphicsDevice;
         private string assetName;
         private List<KeyValuePair<int, Action<object>>> sharedResourceFixups;
         private ContentTypeReader[] typeReaders;
+		internal int version;
+		internal int sharedResourceCount;
 
         internal ContentTypeReader[] TypeReaders
         {
@@ -52,20 +28,13 @@ namespace Microsoft.Xna.Framework.Content
             }
         }
 
-        internal GraphicsDevice GraphicsDevice
-        {
-            get
-            {
-                return this.graphicsDevice;
-            }
-        }
-
-        internal ContentReader(ContentManager manager, Stream stream, GraphicsDevice graphicsDevice, string assetName)
+        internal ContentReader(ContentManager manager, Stream stream, string assetName, int version, Action<IDisposable> recordDisposableObject)
             : base(stream)
         {
-            this.graphicsDevice = graphicsDevice;
+            this.recordDisposableObject = recordDisposableObject;
             this.contentManager = manager;
             this.assetName = assetName;
+			this.version = version;
         }
 
         public ContentManager ContentManager
@@ -86,77 +55,64 @@ namespace Microsoft.Xna.Framework.Content
 
         internal object ReadAsset<T>()
         {
-            object result = null;
-
-            typeReaderManager = new ContentTypeReaderManager(this);
-            typeReaders = typeReaderManager.LoadAssetReaders();
-            foreach (ContentTypeReader r in typeReaders)
-            {
-                r.Initialize(typeReaderManager);
-            }
-
-            int sharedResourceCount = Read7BitEncodedInt();
-            sharedResourceFixups = new List<KeyValuePair<int, Action<object>>>();
+            InitializeTypeReaders();
 
             // Read primary object
-            int index = Read7BitEncodedInt();
-            if (index > 0)
-            {
-                ContentTypeReader contentReader = typeReaders[index - 1];
-                result = ReadObject<T>(contentReader);
-            }
+            object result = ReadObject<T>();
 
             // Read shared resources
-            if (sharedResourceCount > 0)
-            {
-                ReadSharedResources(sharedResourceCount);
-            }
+            ReadSharedResources();
+            
+            return result;
+        }
+
+        internal object ReadAsset<T>(T existingInstance)
+        {
+            InitializeTypeReaders();
+
+            // Read primary object
+            object result = ReadObject<T>(existingInstance);
+
+            // Read shared resources
+            ReadSharedResources();
 
             return result;
         }
 
-        void ReadSharedResources(int sharedResourceCount)
+        internal void InitializeTypeReaders()
         {
-            object[] sharedResources = new object[sharedResourceCount];
-            for (int i = 0; i < sharedResourceCount; ++i)
-            {
-                int index = Read7BitEncodedInt();
-                if (index > 0)
-                {
-                    ContentTypeReader contentReader = typeReaders[index - 1];
-                    sharedResources[i] = ReadObject<object>(contentReader);
-                }
-                else
-                {
-                    sharedResources[i] = null;
-                }
-            }
+            typeReaderManager = new ContentTypeReaderManager();
+            typeReaders = typeReaderManager.LoadAssetReaders(this);
+            sharedResourceCount = Read7BitEncodedInt();
+            sharedResourceFixups = new List<KeyValuePair<int, Action<object>>>();
+        }
+
+        internal void ReadSharedResources()
+        {
+            if (sharedResourceCount <= 0)
+                return;
+
+            var sharedResources = new object[sharedResourceCount];
+            for (var i = 0; i < sharedResourceCount; ++i)
+                sharedResources[i] = InnerReadObject<object>(null);
+
             // Fixup shared resources by calling each registered action
-            foreach (KeyValuePair<int, Action<object>> fixup in sharedResourceFixups)
-            {
+            foreach (var fixup in sharedResourceFixups)
                 fixup.Value(sharedResources[fixup.Key]);
-            }
         }
 
         public T ReadExternalReference<T>()
-		{
-            string externalAssetName = ReadString();
-            if (!String.IsNullOrEmpty(externalAssetName))
-            {
-                // Use Path.GetFullPath to help resolve relative directories
-                string fullRootPath = Path.GetFullPath(contentManager.RootDirectory);
-                string fullAssetPath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Path.Combine(fullRootPath, assetName)), externalAssetName));
+        {
+            var externalReference = ReadString();
 
-#if ANDROID
-                externalAssetName = fullAssetPath.Substring(fullRootPath.Length + 3);
-#else				
-                externalAssetName = fullAssetPath.Substring(fullRootPath.Length + 1);
-#endif
-                return contentManager.Load<T>(externalAssetName);
+            if (!String.IsNullOrEmpty(externalReference))
+            {
+                return contentManager.Load<T>(FileHelpers.ResolveRelativePath(assetName, externalReference));
             }
+
             return default(T);
         }
-        
+
         public Matrix ReadMatrix()
         {
             Matrix result = new Matrix();
@@ -179,36 +135,62 @@ namespace Microsoft.Xna.Framework.Content
             return result;
         }
             
+        private void RecordDisposable<T>(T result)
+        {
+            var disposable = result as IDisposable;
+            if (disposable == null)
+                return;
+
+            if (recordDisposableObject != null)
+                recordDisposableObject(disposable);
+            else
+                contentManager.RecordDisposable(disposable);
+        }
+
         public T ReadObject<T>()
-        {			
-            int typeReaderIndex = Read7BitEncodedInt();
-        
-            if (typeReaderIndex == 0) 
-                return default(T);
-                            
-            return (T)typeReaders[typeReaderIndex - 1].Read(this, default(T));
+        {
+            return InnerReadObject(default(T));
         }
 
         public T ReadObject<T>(ContentTypeReader typeReader)
         {
-            return (T)typeReader.Read(this, default(T));
+            var result = (T)typeReader.Read(this, default(T));            
+            RecordDisposable(result);
+            return result;
         }
 
         public T ReadObject<T>(T existingInstance)
         {
-            ContentTypeReader typeReader = typeReaderManager.GetTypeReader(typeof(T));
-            if (typeReader != null)
-            {
-                return (T)typeReader.Read(this, existingInstance);
-            }
-            throw new ContentLoadException(String.Format("Could not read object type " + typeof(T).Name));
+            return InnerReadObject(existingInstance);
+        }
+
+        private T InnerReadObject<T>(T existingInstance)
+        {
+            var typeReaderIndex = Read7BitEncodedInt();
+            if (typeReaderIndex == 0)
+                return existingInstance;
+
+            if (typeReaderIndex > typeReaders.Length)
+                throw new ContentLoadException("Incorrect type reader index found!");
+
+            var typeReader = typeReaders[typeReaderIndex - 1];
+            var result = (T)typeReader.Read(this, existingInstance);
+
+            RecordDisposable(result);
+
+            return result;
         }
 
         public T ReadObject<T>(ContentTypeReader typeReader, T existingInstance)
         {
-            if (!typeReader.TargetType.IsValueType)
-                return (T)ReadObject<object>();
-            return (T)typeReader.Read(this, existingInstance);
+            if (!ReflectionHelpers.IsValueType(typeReader.TargetType))
+                return ReadObject(existingInstance);
+
+            var result = (T)typeReader.Read(this, existingInstance);
+
+            RecordDisposable(result);
+
+            return result;
         }
 
         public Quaternion ReadQuaternion()
@@ -223,12 +205,12 @@ namespace Microsoft.Xna.Framework.Content
 
         public T ReadRawObject<T>()
         {
-            throw new NotImplementedException();
+			return (T)ReadRawObject<T> (default(T));
         }
 
         public T ReadRawObject<T>(ContentTypeReader typeReader)
         {
-            throw new NotImplementedException();
+            return (T)ReadRawObject<T>(typeReader, default(T));
         }
 
         public T ReadRawObject<T>(T existingInstance)
@@ -304,5 +286,12 @@ namespace Microsoft.Xna.Framework.Content
         {
             return base.Read7BitEncodedInt();
         }
+		
+		internal BoundingSphere ReadBoundingSphere()
+		{
+			var position = ReadVector3();
+            var radius = ReadSingle();
+            return new BoundingSphere(position, radius);
+		}
     }
 }

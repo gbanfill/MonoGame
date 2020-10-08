@@ -1,3 +1,7 @@
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
+
 using System;
 using System.Collections.Generic;
 
@@ -6,9 +10,9 @@ namespace Microsoft.Xna.Framework.Media
 	public sealed class MediaQueue
 	{
         List<Song> songs = new List<Song>();
-		private int _activeSongIndex = 0;
+		private int _activeSongIndex = -1;
 		private Random random = new Random();
-		
+
 		public MediaQueue()
 		{
 			
@@ -18,7 +22,7 @@ namespace Microsoft.Xna.Framework.Media
 		{
 			get
 			{
-				if (songs.Count == 0)
+				if (songs.Count == 0 || _activeSongIndex < 0)
 					return null;
 				
 				return songs[_activeSongIndex];
@@ -27,8 +31,14 @@ namespace Microsoft.Xna.Framework.Media
 		
 		public int ActiveSongIndex
 		{
-			get { return _activeSongIndex; }
-			set { _activeSongIndex = value; }
+		    get
+		    {
+		        return _activeSongIndex;
+		    }
+		    set
+		    {
+		        _activeSongIndex = value;
+		    }
 		}
 
         internal int Count
@@ -36,6 +46,14 @@ namespace Microsoft.Xna.Framework.Media
             get
             {
                 return songs.Count;
+            }
+        }
+
+        public Song this[int index]
+        {
+            get
+            {
+                return songs[index];
             }
         }
 
@@ -63,29 +81,35 @@ namespace Microsoft.Xna.Framework.Media
 			for(; songs.Count > 0; )
 			{
 				song = songs[0];
+#if !DIRECTX
 				song.Stop();
+#endif
 				songs.Remove(song);
 			}	
 		}
 
+#if !DIRECTX
         internal void SetVolume(float volume)
         {
             int count = songs.Count;
             for (int i = 0; i < count; ++i)
                 songs[i].Volume = volume;
         }
+#endif
 
         internal void Add(Song song)
         {
             songs.Add(song);
         }
 
+#if !DIRECTX
         internal void Stop()
         {
             int count = songs.Count;
             for (int i = 0; i < count; ++i)
                 songs[i].Stop();
         }
+#endif
 	}
 }
 

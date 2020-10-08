@@ -1,52 +1,34 @@
-// #region License
-// /*
-// Microsoft Public License (Ms-PL)
-// MonoGame - Copyright © 2009 The MonoGame Team
-// 
-// All rights reserved.
-// 
-// This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
-// accept the license, do not use the software.
-// 
-// 1. Definitions
-// The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
-// U.S. copyright law.
-// 
-// A "contribution" is the original software, or any additions or changes to the software.
-// A "contributor" is any person that distributes its contribution under this license.
-// "Licensed patents" are a contributor's patent claims that read directly on its contribution.
-// 
-// 2. Grant of Rights
-// (A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-// each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
-// (B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-// each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
-// 
-// 3. Conditions and Limitations
-// (A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
-// (B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
-// your patent license from such contributor to the software ends automatically.
-// (C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
-// notices that are present in the software.
-// (D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
-// a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
-// code form, you may only do so under a license that complies with this license.
-// (E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
-// or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
-// permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
-// purpose and non-infringement.
-// */
-// #endregion License
-// 
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
+
 using System;
+using System.Diagnostics;
+using System.Threading;
+
 namespace Microsoft.Xna.Framework.Graphics
 {
-	public abstract class Texture : GraphicsResource
+	public abstract partial class Texture : GraphicsResource
 	{
-		protected SurfaceFormat _format;
-		protected int _levelCount;
-		internal int _textureId = -1;
-		
+		internal SurfaceFormat _format;
+		internal int _levelCount;
+
+        private readonly int _sortingKey = Interlocked.Increment(ref _lastSortingKey);
+        private static int _lastSortingKey;
+
+        /// <summary>
+        /// Gets a unique identifier of this texture for sorting purposes.
+        /// </summary>
+        /// <remarks>
+        /// <para>For example, this value is used by <see cref="SpriteBatch"/> when drawing with <see cref="SpriteSortMode.Texture"/>.</para>
+        /// <para>The value is an implementation detail and may change between application launches or MonoGame versions.
+        /// It is only guaranteed to stay consistent during application lifetime.</para>
+        /// </remarks>
+        internal int SortingKey
+        {
+            get { return _sortingKey; }
+        }
+
 		public SurfaceFormat Format
 		{
 			get { return _format; }
@@ -56,6 +38,94 @@ namespace Microsoft.Xna.Framework.Graphics
 		{
 			get { return _levelCount; }
 		}
-	}
+
+        internal static int CalculateMipLevels(int width, int height = 0, int depth = 0)
+        {
+            int levels = 1;
+            int size = Math.Max(Math.Max(width, height), depth);
+            while (size > 1)
+            {
+                size = size / 2;
+                levels++;
+            }
+            return levels;
+        }
+
+        internal static void GetSizeForLevel(int width, int height, int level, out int w, out int h)
+        {
+            w = width;
+            h = height;
+            while (level > 0)
+            {
+                --level;
+                w /= 2;
+                h /= 2;
+            }
+            if (w == 0)
+                w = 1;
+            if (h == 0)
+                h = 1;
+        }
+
+        internal static void GetSizeForLevel(int width, int height, int depth, int level, out int w, out int h, out int d)
+        {
+            w = width;
+            h = height;
+            d = depth;
+            while (level > 0)
+            {
+                --level;
+                w /= 2;
+                h /= 2;
+                d /= 2;
+            }
+            if (w == 0)
+                w = 1;
+            if (h == 0)
+                h = 1;
+            if (d == 0)
+                d = 1;
+        }
+
+        internal int GetPitch(int width)
+        {
+            Debug.Assert(width > 0, "The width is negative!");
+
+            int pitch;
+
+            switch (_format)
+            {
+                case SurfaceFormat.Dxt1:
+                case SurfaceFormat.Dxt1SRgb:
+                case SurfaceFormat.Dxt1a:
+                case SurfaceFormat.RgbPvrtc2Bpp:
+                case SurfaceFormat.RgbaPvrtc2Bpp:
+                case SurfaceFormat.RgbEtc1:
+                case SurfaceFormat.Rgb8Etc2:
+                case SurfaceFormat.Srgb8Etc2:
+                case SurfaceFormat.Rgb8A1Etc2:
+                case SurfaceFormat.Srgb8A1Etc2:
+                case SurfaceFormat.Dxt3:
+                case SurfaceFormat.Dxt3SRgb:
+                case SurfaceFormat.Dxt5:
+                case SurfaceFormat.Dxt5SRgb:
+                case SurfaceFormat.RgbPvrtc4Bpp:
+                case SurfaceFormat.RgbaPvrtc4Bpp:                    
+                    pitch = ((width + 3) / 4) * _format.GetSize();
+                    break;
+
+                default:
+                    pitch = width * _format.GetSize();
+                    break;
+            };
+
+            return pitch;
+        }
+
+        internal protected override void GraphicsDeviceResetting()
+        {
+            PlatformGraphicsDeviceResetting();
+        }
+    }
 }
 

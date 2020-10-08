@@ -1,81 +1,133 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using OpenTK.Graphics.ES20;
-using OpenTK.Graphics.ES11;
-using GL11 = OpenTK.Graphics.ES11.GL;
-using GL20 = OpenTK.Graphics.ES20.GL;
-using All11 = OpenTK.Graphics.ES11.All;
-using All20 = OpenTK.Graphics.ES20.All;
+using System.Diagnostics;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     public class EffectPass
     {
-        EffectTechnique _technique = null;
-		internal int shaderProgram;
+        private readonly Effect _effect;
+
+		private readonly Shader _pixelShader;
+        private readonly Shader _vertexShader;
+
+        private readonly BlendState _blendState;
+        private readonly DepthStencilState _depthStencilState;
+        private readonly RasterizerState _rasterizerState;
+
+		public string Name { get; private set; }
+
+        public EffectAnnotationCollection Annotations { get; private set; }
+
+        internal EffectPass(    Effect effect, 
+                                string name,
+                                Shader vertexShader, 
+                                Shader pixelShader, 
+                                BlendState blendState, 
+                                DepthStencilState depthStencilState, 
+                                RasterizerState rasterizerState,
+                                EffectAnnotationCollection annotations )
+        {
+            Debug.Assert(effect != null, "Got a null effect!");
+            Debug.Assert(annotations != null, "Got a null annotation collection!");
+
+            _effect = effect;
+
+            Name = name;
+
+            _vertexShader = vertexShader;
+            _pixelShader = pixelShader;
+
+            _blendState = blendState;
+            _depthStencilState = depthStencilState;
+            _rasterizerState = rasterizerState;
+
+            Annotations = annotations;
+        }
+        
+        internal EffectPass(Effect effect, EffectPass cloneSource)
+        {
+            Debug.Assert(effect != null, "Got a null effect!");
+            Debug.Assert(cloneSource != null, "Got a null cloneSource!");
+
+            _effect = effect;
+
+            // Share all the immutable types.
+            Name = cloneSource.Name;
+            _blendState = cloneSource._blendState;
+            _depthStencilState = cloneSource._depthStencilState;
+            _rasterizerState = cloneSource._rasterizerState;
+            Annotations = cloneSource.Annotations;
+            _vertexShader = cloneSource._vertexShader;
+            _pixelShader = cloneSource._pixelShader;
+        }
 
         public void Apply()
         {
-			// Tell the GL Context to use the program
-			//GL20.UseProgram (shaderProgram);
-			
-            _technique._effect.Apply();
+            // Set/get the correct shader handle/cleanups.
+
+            var current = _effect.CurrentTechnique;
+            _effect.OnApply();
+            if (_effect.CurrentTechnique != current)
+            {
+                _effect.CurrentTechnique.Passes[0].Apply();
+                return;
+            }
+
+            var device = _effect.GraphicsDevice;
+
+            if (_vertexShader != null)
+            {
+                device.VertexShader = _vertexShader;
+
+				// Update the texture parameters.
+                SetShaderSamplers(_vertexShader, device.VertexTextures, device.VertexSamplerStates);
+
+                // Update the constant buffers.
+                for (var c = 0; c < _vertexShader.CBuffers.Length; c++)
+                {
+                    var cb = _effect.ConstantBuffers[_vertexShader.CBuffers[c]];
+                    cb.Update(_effect.Parameters);
+                    device.SetConstantBuffer(ShaderStage.Vertex, c, cb);
+                }
+            }
+
+            if (_pixelShader != null)
+            {
+                device.PixelShader = _pixelShader;
+
+                // Update the texture parameters.
+                SetShaderSamplers(_pixelShader, device.Textures, device.SamplerStates);
+                
+                // Update the constant buffers.
+                for (var c = 0; c < _pixelShader.CBuffers.Length; c++)
+                {
+                    var cb = _effect.ConstantBuffers[_pixelShader.CBuffers[c]];
+                    cb.Update(_effect.Parameters);
+                    device.SetConstantBuffer(ShaderStage.Pixel, c, cb);
+                }
+            }
+
+            // Set the render states if we have some.
+            if (_rasterizerState != null)
+                device.RasterizerState = _rasterizerState;
+            if (_blendState != null)
+                device.BlendState = _blendState;
+            if (_depthStencilState != null)
+                device.DepthStencilState = _depthStencilState;
         }
 
-        public EffectPass(EffectTechnique technique)
+        private void SetShaderSamplers(Shader shader, TextureCollection textures, SamplerStateCollection samplerStates)
         {
-            _technique = technique;
+            foreach (var sampler in shader.Samplers)
+            {
+                var param = _effect.Parameters[sampler.parameter];
+                var texture = param.Data as Texture;
+
+                textures[sampler.textureSlot] = texture;
+
+                // If there is a sampler state set it.
+                if (sampler.state != null)
+                    samplerStates[sampler.samplerSlot] = sampler.state;
+            }
         }
-		
-		internal void ApplyPass ()
-		{
-			
-			// Create a Program object
-			shaderProgram = GL20.CreateProgram ();
-
-			// Attach our compiled shaders
-			if ( VertexIndex < _technique._effect.vertexShaders.Count)
-				GL20.AttachShader (shaderProgram, _technique._effect.vertexShaders[VertexIndex]);
-			if ( FragmentIndex < _technique._effect.fragmentShaders.Count)			
-				GL20.AttachShader (shaderProgram, _technique._effect.fragmentShaders[FragmentIndex]);
-
-			// Set the parameters
-			// TODO GL20.ProgramParameter (shaderProgram, AssemblyProgramParameterArb.GeometryInputType, (int)All.Lines);	
-			// TODO GL20.ProgramParameter (shaderProgram, AssemblyProgramParameterArb.GeometryOutputType, (int)All.Line);
-			
-			// Set the max vertices
-			int maxVertices;
-			// TODO GL20.GetInteger (GetPName.MaxGeometryOutputVertices, out maxVertices);
-			// TODO GL20.ProgramParameter (shaderProgram, AssemblyProgramParameterArb.GeometryVerticesOut, maxVertices);
-
-			// Link the program
-			GL20.LinkProgram (shaderProgram);
-			string name = String.Format("Technique {0} - Pass {1}: ",_technique.Name, Name);
-			ShaderLog(name,shaderProgram);				
-			
-		}
-		
-		public string Name { get; set; }	
-		
-		// internal for now until I figure out what I can do with this mess
-		internal int VertexIndex { get; set; }
-		internal int FragmentIndex { get; set; }
-		
-		// Output the log of an object
-		private void ShaderLog (string whichObj, int obj)
-		{
-			int infoLogLen = 0;
-			var infoLog = "Is good to go.";
-
-			// TODO GL.GetProgram (obj, ProgramParameter.InfoLogLength, out infoLogLen);
-
-			/* TODO if (infoLogLen > 0)
-				infoLog = GL.GetProgramInfoLog (obj); */
-#if DEBUG
-			Console.WriteLine ("{0} {1}", whichObj, infoLog);
-#endif
-		}	
     }
 }

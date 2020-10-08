@@ -1,10 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Runtime.InteropServices;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct VertexPositionNormalTexture : IVertexType
     {
         public Vector3 Position;
@@ -25,15 +23,21 @@ namespace Microsoft.Xna.Framework.Graphics
                 return VertexDeclaration;
             }
         }
+
         public override int GetHashCode()
         {
-            // TODO: FIc gethashcode
-            return 0;
+            unchecked
+            {
+                var hashCode = Position.GetHashCode();
+                hashCode = (hashCode * 397) ^ Normal.GetHashCode();
+                hashCode = (hashCode * 397) ^ TextureCoordinate.GetHashCode();
+                return hashCode;
+            }
         }
 
         public override string ToString()
         {
-            return string.Format("{{Position:{0} Normal:{1} TextureCoordinate:{2}}}", new object[] { this.Position, this.Normal, this.TextureCoordinate });
+            return "{{Position:" + this.Position + " Normal:" + this.Normal + " TextureCoordinate:" + this.TextureCoordinate + "}}";
         }
 
         public static bool operator ==(VertexPositionNormalTexture left, VertexPositionNormalTexture right)

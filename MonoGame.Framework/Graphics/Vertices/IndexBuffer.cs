@@ -1,111 +1,125 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
+﻿// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
-#if MONOMAC
-using MonoMac.OpenGL;
-#else
-using GL11 = OpenTK.Graphics.ES11.GL;
-using GL20 = OpenTK.Graphics.ES20.GL;
-using All11 = OpenTK.Graphics.ES11.All;
-using All20 = OpenTK.Graphics.ES20.All;
-#endif
+using System;
+using MonoGame.Framework.Utilities;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-    public class IndexBuffer : GraphicsResource
+    public partial class IndexBuffer : GraphicsResource
     {
-        internal Type _type;
-        internal int _count;
-		private object _buffer;
-		internal IntPtr _bufferPtr;
-		internal IntPtr _sizePtr;
-        private readonly BufferUsage _bufferUsage;
-		internal int _bufferIndex;
-		internal int _size;
-		internal uint _bufferStore;
+        private readonly bool _isDynamic;
 
-        // TODO: Remove this IB limit!
-        internal static IndexBuffer[] _allBuffers = new IndexBuffer[50];
-        internal static int _bufferCount;
+        public BufferUsage BufferUsage { get; private set; }
+        public int IndexCount { get; private set; }
+        public IndexElementSize IndexElementSize { get; private set; }
 
-		internal static List<Action> _delayedBufferDelegates = new List<Action>(); 
-		
-		internal static void CreateFrameBuffers()
-		{
-			foreach (var action in _delayedBufferDelegates)
-				action.Invoke();
-			
-			_delayedBufferDelegates.Clear();
-		}		
-
-		public IndexElementSize IndexElementSize { get; internal set; }
-		
-		public int IndexCount { get; internal set; }
-
-        public IndexBuffer (GraphicsDevice graphics, Type type, int count, BufferUsage bufferUsage)
+   		protected IndexBuffer(GraphicsDevice graphicsDevice, Type indexType, int indexCount, BufferUsage usage, bool dynamic)
+            : this(graphicsDevice, SizeForType(graphicsDevice, indexType), indexCount, usage, dynamic)
         {
-			if (type != typeof(int) && type != typeof(short) && type != typeof(byte) && type != typeof(ushort))
-				throw new NotSupportedException ("The only types that are supported are: int, short, byte, ushort");
-
-            graphicsDevice = graphics;
-            _type = type;
-			if (type == typeof(short))
-				IndexElementSize = IndexElementSize.SixteenBits;
-			else
-				IndexElementSize = IndexElementSize.ThirtyTwoBits;
-			IndexCount = count;
-            _bufferUsage = bufferUsage;
         }
 
-		public IndexBuffer (GraphicsDevice graphics, IndexElementSize size, int count, BufferUsage bufferUsage)
-		{
-            graphicsDevice = graphics;
-			_type = (size == IndexElementSize.SixteenBits) ? typeof(short) : typeof(int);
-			IndexCount = count;
-			IndexElementSize = size;
-			_bufferUsage = bufferUsage;
-		}
-
-		internal void GenerateBuffer<T>() where T : struct
-		{
-			#if MONOMAC		
-			
-			BufferUsageHint bufferUsage = (_bufferUsage == BufferUsage.WriteOnly) ? BufferUsageHint.StaticDraw : BufferUsageHint.DynamicDraw;
-			GL.GenBuffers (1, out _bufferStore);
-			GL.BindBuffer (BufferTarget.ElementArrayBuffer, _bufferStore);
-			GL.BufferData<T> (BufferTarget.ElementArrayBuffer, (IntPtr)_size, (T[])_buffer, bufferUsage);			
-			
-			#else
-						
-            var bufferUsage = (_bufferUsage == BufferUsage.WriteOnly) ? All11.StaticDraw : All11.DynamicDraw;
-            GL11.GenBuffers(1, ref _bufferStore);
-            GL11.BindBuffer(All11.ElementArrayBuffer, _bufferStore);
-            GL11.BufferData<T>(All11.ElementArrayBuffer, (IntPtr)_size, (T[])_buffer, bufferUsage);			
-
-			#endif
-		}
-		
-		public void SetData<T>(T[] indicesData) where T : struct
+		protected IndexBuffer(GraphicsDevice graphicsDevice, IndexElementSize indexElementSize, int indexCount, BufferUsage usage, bool dynamic)
         {
-			_bufferIndex = _bufferCount + 1;
-            _buffer = indicesData;
-			_size = indicesData.Length * Marshal.SizeOf(_type);
-            _bufferPtr = GCHandle.Alloc(_buffer, GCHandleType.Pinned).AddrOfPinnedObject();
-			_delayedBufferDelegates.Add(GenerateBuffer<T>);
+			if (graphicsDevice == null)
+            {
+                throw new ArgumentNullException("graphicsDevice", FrameworkResources.ResourceCreationWhenDeviceIsNull);
+            }
+			this.GraphicsDevice = graphicsDevice;
+			this.IndexElementSize = indexElementSize;	
+            this.IndexCount = indexCount;
+            this.BufferUsage = usage;
+			
+            _isDynamic = dynamic;
 
-			_allBuffers[_bufferIndex] = this;			
-        }
-		
-		public override void Dispose ()
+            PlatformConstruct(indexElementSize, indexCount);
+		}
+
+		public IndexBuffer(GraphicsDevice graphicsDevice, IndexElementSize indexElementSize, int indexCount, BufferUsage bufferUsage) :
+			this(graphicsDevice, indexElementSize, indexCount, bufferUsage, false)
 		{
-			#if MONOMAC		
-			GL.GenBuffers (0, out _bufferStore);
-			#else					
-			GL11.GenBuffers(0, ref _bufferStore);
-			#endif
-						
-            base.Dispose();
-        }		
-    }
+		}
+
+		public IndexBuffer(GraphicsDevice graphicsDevice, Type indexType, int indexCount, BufferUsage usage) :
+			this(graphicsDevice, SizeForType(graphicsDevice, indexType), indexCount, usage, false)
+		{
+		}
+
+        /// <summary>
+        /// Gets the relevant IndexElementSize enum value for the given type.
+        /// </summary>
+        /// <param name="graphicsDevice">The graphics device.</param>
+        /// <param name="type">The type to use for the index buffer</param>
+        /// <returns>The IndexElementSize enum value that matches the type</returns>
+        static IndexElementSize SizeForType(GraphicsDevice graphicsDevice, Type type)
+        {
+            switch (ReflectionHelpers.ManagedSizeOf(type))
+            {
+                case 2:
+                    return IndexElementSize.SixteenBits;
+                case 4:
+                    if (graphicsDevice.GraphicsProfile == GraphicsProfile.Reach)
+                        throw new NotSupportedException("The profile does not support an elementSize of IndexElementSize.ThirtyTwoBits; use IndexElementSize.SixteenBits or a type that has a size of two bytes.");
+                    return IndexElementSize.ThirtyTwoBits;
+                default:
+                    throw new ArgumentOutOfRangeException("type","Index buffers can only be created for types that are sixteen or thirty two bits in length");
+            }
+        }
+
+        /// <summary>
+        /// The GraphicsDevice is resetting, so GPU resources must be recreated.
+        /// </summary>
+        internal protected override void GraphicsDeviceResetting()
+        {
+            PlatformGraphicsDeviceResetting();
+        }
+
+        public void GetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount) where T : struct
+        {
+            if (data == null)
+                throw new ArgumentNullException("data");
+            if (data.Length < (startIndex + elementCount))
+                throw new InvalidOperationException("The array specified in the data parameter is not the correct size for the amount of data requested.");
+            if (BufferUsage == BufferUsage.WriteOnly)
+                throw new NotSupportedException("This IndexBuffer was created with a usage type of BufferUsage.WriteOnly. Calling GetData on a resource that was created with BufferUsage.WriteOnly is not supported.");
+
+            PlatformGetData<T>(offsetInBytes, data, startIndex, elementCount);
+        }
+
+        public void GetData<T>(T[] data, int startIndex, int elementCount) where T : struct
+        {
+            this.GetData<T>(0, data, startIndex, elementCount);
+        }
+
+        public void GetData<T>(T[] data) where T : struct
+        {
+            this.GetData<T>(0, data, 0, data.Length);
+        }
+
+        public void SetData<T>(int offsetInBytes, T[] data, int startIndex, int elementCount) where T : struct
+        {
+            SetDataInternal<T>(offsetInBytes, data, startIndex, elementCount, SetDataOptions.None);
+        }
+        		
+		public void SetData<T>(T[] data, int startIndex, int elementCount) where T : struct
+        {
+            SetDataInternal<T>(0, data, startIndex, elementCount, SetDataOptions.None);
+		}
+		
+        public void SetData<T>(T[] data) where T : struct
+        {
+            SetDataInternal<T>(0, data, 0, data.Length, SetDataOptions.None);
+        }
+
+        protected void SetDataInternal<T>(int offsetInBytes, T[] data, int startIndex, int elementCount, SetDataOptions options) where T : struct
+        {
+            if (data == null)
+                throw new ArgumentNullException("data");
+            if (data.Length < (startIndex + elementCount))
+                throw new InvalidOperationException("The array specified in the data parameter is not the correct size for the amount of data requested.");
+
+            PlatformSetDataInternal<T>(offsetInBytes, data, startIndex, elementCount, options);
+        }
+	}
 }

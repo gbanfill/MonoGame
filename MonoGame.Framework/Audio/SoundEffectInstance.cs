@@ -1,245 +1,218 @@
-#region License
-// /*
-// Microsoft Public License (Ms-PL)
-// MonoGame - Copyright © 2009 The MonoGame Team
-// 
-// All rights reserved.
-// 
-// This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
-// accept the license, do not use the software.
-// 
-// 1. Definitions
-// The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
-// U.S. copyright law.
-// 
-// A "contribution" is the original software, or any additions or changes to the software.
-// A "contributor" is any person that distributes its contribution under this license.
-// "Licensed patents" are a contributor's patent claims that read directly on its contribution.
-// 
-// 2. Grant of Rights
-// (A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-// each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
-// (B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-// each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
-// 
-// 3. Conditions and Limitations
-// (A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
-// (B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
-// your patent license from such contributor to the software ends automatically.
-// (C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
-// notices that are present in the software.
-// (D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
-// a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
-// code form, you may only do so under a license that complies with this license.
-// (E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
-// or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
-// permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
-// purpose and non-infringement.
-// */
-#endregion License
+﻿// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
-#region Using Statements
 using System;
-#endregion Statements
 
 namespace Microsoft.Xna.Framework.Audio
 {
-	public sealed class SoundEffectInstance : IDisposable
-	{
-		private bool isDisposed = false;
-		private SoundState soundState = SoundState.Stopped;
-		
-		public SoundEffectInstance ()
-		{
-			
-		}
-		
-		public void Dispose()
-		{
-			_sound.Dispose();
-			isDisposed = true;
-		}
-		
-		public void Apply3D (AudioListener listener, AudioEmitter emitter)
-		{
-			throw new NotImplementedException();
-		}
-		
-		public void Apply3D (AudioListener[] listeners,AudioEmitter emitter)
-		{
-			throw new NotImplementedException();
-		}		
-		
-		public void Pause ()
-		{
-            if ( _sound != null )
-			{
-				_sound.Pause();
-				soundState = SoundState.Paused;
-			}
-		}
-		
-		public void Play ()
-		{
-			if ( _sound != null )
-			{
-				if (soundState == SoundState.Paused)
-					_sound.Resume();
-				else
-					_sound.Play();
-				soundState = SoundState.Playing;
-			}
-		}
-		
-		public void Resume ()
-		{
-			Play();
-		}
-		
-		public void Stop ()
-		{
-			if ( _sound != null )
-			{
-				_sound.Stop();
-				soundState = SoundState.Stopped;
-			}
-		}
-		
-		public void Stop (bool immediate)
-		{
-			Stop();
-		}
-		
-		public bool IsDisposed 
-		{ 
-			get
-			{
-				return isDisposed;
-			}
-		}
-		
-		public bool IsLooped 
-		{ 
-			get
-			{
-				if ( _sound != null )
-				{
-					return _sound.Looping;
-				}
-				else
-				{
-					return false;
-				}
-			}
-			
-			set
-			{
-				if ( _sound != null )
-				{
-					if ( _sound.Looping != value )
-					{
-						_sound.Looping = value;
-					}
-				}
-			}
-		}
-		
-		public float Pan 
-		{ 
-			get
-			{
-                if ( _sound != null )
-				{
-					return _sound.Pan;
-				}
-				else
-				{
-					return 0.0f;
-				}
-			}
-			
-			set
-			{
-                if ( _sound != null )
-				{
-					if ( _sound.Pan != value )
-					{
-						_sound.Pan = value;
-					}
-				}
-			}
-		}
-		
-		public float Pitch         
-		{             
-	            get
-	            {
-					if ( _sound != null)
-				    {
-	                   return _sound.Rate;
-				    }
-				    return 0.0f;
-	            }
-	            set
-	            {
-				    if ( _sound != null && _sound.Rate != value)
-				    {
-	                   _sound.Rate = value;
-				    } 
-	            }        
-		 }
-		
-		private Sound _sound;
-		internal Sound Sound 
-		{ 
-			get
-			{
-				return _sound;
-			} 
-			
-			set
-			{
-				_sound = value;
-			} 
-		}
-		
-		public SoundState State 
-		{ 
-			get
-			{
-				if (_sound != null && soundState == SoundState.Playing && !_sound.Playing) {
-					soundState = SoundState.Stopped;
-				}
-				return soundState;
-			} 
-		}
-		
-		public float Volume
-		{ 
-			get
-			{
-				if (_sound != null)
-				{
-					return _sound.Volume;
-				}
-				else
-				{
-					return 0.0f;
-				}
-			}
-			
-			set
-			{
-				if ( _sound != null )
-				{
-					if ( _sound.Volume != value )
-					{
-						_sound.Volume = value;
-					}
-				}
-			}
-		}	
-		
-		
-	}
+    /// <summary>Represents a single instance of a playing, paused, or stopped sound.</summary>
+    /// <remarks>
+    /// <para>SoundEffectInstances are created through SoundEffect.CreateInstance() and used internally by SoundEffect.Play()</para>
+    /// </remarks>
+    public partial class SoundEffectInstance : IDisposable
+    {
+        private bool _isDisposed = false;
+        internal bool _isPooled = true;
+        internal bool _isXAct;
+        internal bool _isDynamic;
+        internal SoundEffect _effect;
+        private float _pan;
+        private float _volume;
+        private float _pitch;
+
+        /// <summary>Enables or Disables whether the SoundEffectInstance should repeat after playback.</summary>
+        /// <remarks>This value has no effect on an already playing sound.</remarks>
+        public virtual bool IsLooped
+        { 
+            get { return PlatformGetIsLooped(); }
+            set { PlatformSetIsLooped(value); }
+        }
+
+        /// <summary>Gets or sets the pan, or speaker balance..</summary>
+        /// <value>Pan value ranging from -1.0 (left speaker) to 0.0 (centered), 1.0 (right speaker). Values outside of this range will throw an exception.</value>
+        public float Pan
+        {
+            get { return _pan; } 
+            set
+            {
+                if (value < -1.0f || value > 1.0f)
+                    throw new ArgumentOutOfRangeException();
+
+                _pan = value;
+                PlatformSetPan(value);
+            }
+        }
+
+        /// <summary>Gets or sets the pitch adjustment.</summary>
+        /// <value>Pitch adjustment, ranging from -1.0 (down an octave) to 0.0 (no change) to 1.0 (up an octave). Values outside of this range will throw an Exception.</value>
+        public float Pitch
+        {
+            get { return _pitch; }
+            set
+            {
+                // XAct sounds effects don't have pitch limits
+                if (!_isXAct && (value < -1.0f || value > 1.0f))
+                    throw new ArgumentOutOfRangeException();
+
+                _pitch = value;
+                PlatformSetPitch(value);
+            }
+        }
+
+        /// <summary>Gets or sets the volume of the SoundEffectInstance.</summary>
+        /// <value>Volume, ranging from 0.0 (silence) to 1.0 (full volume). Volume during playback is scaled by SoundEffect.MasterVolume.</value>
+        /// <remarks>
+        /// This is the volume relative to SoundEffect.MasterVolume. Before playback, this Volume property is multiplied by SoundEffect.MasterVolume when determining the final mix volume.
+        /// </remarks>
+        public float Volume
+        {
+            get { return _volume; }
+            set
+            {
+                // XAct sound effects don't have volume limits.
+                if (!_isXAct && (value < 0.0f || value > 1.0f))
+                    throw new ArgumentOutOfRangeException();
+
+                _volume = value;
+
+                // XAct sound effects are not tied to the SoundEffect master volume.
+                if (_isXAct)
+                    PlatformSetVolume(value);
+                else
+                    PlatformSetVolume(value * SoundEffect.MasterVolume);
+            }
+        }
+
+        /// <summary>Gets the SoundEffectInstance's current playback state.</summary>
+        public virtual SoundState State { get { return PlatformGetState(); } }
+
+        /// <summary>Indicates whether the object is disposed.</summary>
+        public bool IsDisposed { get { return _isDisposed; } }
+
+        internal SoundEffectInstance()
+        {
+            _pan = 0.0f;
+            _volume = 1.0f;
+            _pitch = 0.0f;            
+        }
+
+        internal SoundEffectInstance(byte[] buffer, int sampleRate, int channels)
+            : this()
+        {
+            PlatformInitialize(buffer, sampleRate, channels);
+        }
+
+        /// <summary>
+        /// Releases unmanaged resources and performs other cleanup operations before the
+        /// <see cref="Microsoft.Xna.Framework.Audio.SoundEffectInstance"/> is reclaimed by garbage collection.
+        /// </summary>
+        ~SoundEffectInstance()
+        {
+            Dispose(false);
+        }
+
+        /// <summary>Applies 3D positioning to the SoundEffectInstance using a single listener.</summary>
+        /// <param name="listener">Data about the listener.</param>
+        /// <param name="emitter">Data about the source of emission.</param>
+        public void Apply3D(AudioListener listener, AudioEmitter emitter)
+        {
+            PlatformApply3D(listener, emitter);
+        }
+
+        /// <summary>Applies 3D positioning to the SoundEffectInstance using multiple listeners.</summary>
+        /// <param name="listeners">Data about each listener.</param>
+        /// <param name="emitter">Data about the source of emission.</param>
+        public void Apply3D(AudioListener[] listeners, AudioEmitter emitter)
+        {
+            foreach (var l in listeners)
+				PlatformApply3D(l, emitter);
+        }
+
+        /// <summary>Pauses playback of a SoundEffectInstance.</summary>
+        /// <remarks>Paused instances can be resumed with SoundEffectInstance.Play() or SoundEffectInstance.Resume().</remarks>
+        public virtual void Pause()
+        {
+            PlatformPause();
+        }
+
+        /// <summary>Plays or resumes a SoundEffectInstance.</summary>
+        /// <remarks>Throws an exception if more sounds are playing than the platform allows.</remarks>
+        public virtual void Play()
+        {
+            if (_isDisposed)
+                throw new ObjectDisposedException("SoundEffectInstance");
+
+            if (State == SoundState.Playing)
+                return;
+
+            if (State == SoundState.Paused)
+            {
+                Resume();
+                return;
+            }
+
+            // We don't need to check if we're at the instance play limit
+            // if we're resuming from a paused state.
+            if (State != SoundState.Paused)
+            {
+                if (!SoundEffectInstancePool.SoundsAvailable)
+                    throw new InstancePlayLimitException();
+            }
+            
+            // For non-XAct sounds we need to be sure the latest
+            // master volume level is applied before playback.
+            if (!_isXAct)
+                PlatformSetVolume(_volume * SoundEffect.MasterVolume);
+
+            PlatformPlay();
+            SoundEffectInstancePool.Remove(this);
+        }
+
+        /// <summary>Resumes playback for a SoundEffectInstance.</summary>
+        /// <remarks>Only has effect on a SoundEffectInstance in a paused state.</remarks>
+        public virtual void Resume()
+        {
+            PlatformResume();
+        }
+
+        /// <summary>Immediately stops playing a SoundEffectInstance.</summary>
+        public virtual void Stop()
+        {
+            PlatformStop(true);
+        }
+
+        /// <summary>Stops playing a SoundEffectInstance, either immediately or as authored.</summary>
+        /// <param name="immediate">Determined whether the sound stops immediately, or after playing its release phase and/or transitions.</param>
+        /// <remarks>Stopping a sound with the immediate argument set to false will allow it to play any release phases, such as fade, before coming to a stop.</remarks>
+        public virtual void Stop(bool immediate)
+        {
+            PlatformStop(immediate);
+        }
+
+        /// <summary>Releases the resources held by this <see cref="Microsoft.Xna.Framework.Audio.SoundEffectInstance"/>.</summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases the resources held by this <see cref="Microsoft.Xna.Framework.Audio.SoundEffectInstance"/>.
+        /// </summary>
+        /// <param name="disposing">If set to <c>true</c>, Dispose was called explicitly.</param>
+        /// <remarks>If the disposing parameter is true, the Dispose method was called explicitly. This
+        /// means that managed objects referenced by this instance should be disposed or released as
+        /// required.  If the disposing parameter is false, Dispose was called by the finalizer and
+        /// no managed objects should be touched because we do not know if they are still valid or
+        /// not at that time.  Unmanaged resources should always be released.</remarks>
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_isDisposed)
+            {
+                PlatformDispose(disposing);
+                _isDisposed = true;
+            }
+        }
+    }
 }

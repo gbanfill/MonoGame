@@ -1,45 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
     public class EffectTechniqueCollection : IEnumerable<EffectTechnique>
     {
-		// Modified to be a list instead of dictionary object because a dictionary does not guarantee
-		// the order is kept as it is a hash key.
-		internal List <EffectTechnique> _techniques = new List<EffectTechnique> ();
-        //Dictionary<string, EffectTechnique> _techniques = new Dictionary<string, EffectTechnique>();
+		private readonly EffectTechnique[] _techniques;
 
+        public int Count { get { return _techniques.Length; } }
+
+        internal EffectTechniqueCollection(EffectTechnique[] techniques)
+        {
+            _techniques = techniques;
+        }
+
+        internal EffectTechniqueCollection Clone(Effect effect)
+        {
+            var techniques = new EffectTechnique[_techniques.Length];
+            for (var i = 0; i < _techniques.Length; i++)
+                techniques[i] = new EffectTechnique(effect, _techniques[i]);
+
+            return new EffectTechniqueCollection(techniques);
+        }
+        
         public EffectTechnique this[int index]
         {
             get { return _techniques [index]; }
-            set { _techniques [index] = value; }
         }
 
         public EffectTechnique this[string name]
         {
-            get {
-				foreach (EffectTechnique technique in _techniques) {
+            get 
+            {
+                // TODO: Add a name to technique lookup table.
+				foreach (var technique in _techniques) 
+                {
 					if (technique.Name == name)
 						return technique;
-				}
-				return null;
-		}
-            set {
+			    }
 
-				var technique = this[name];
-				if (technique != null)
-					technique = value;
-				else
-					_techniques.Add(value);
-			}
+			    return null;
+		    }
         }
 
         public IEnumerator<EffectTechnique> GetEnumerator()
         {
-            return _techniques.GetEnumerator();
+            return ((IEnumerable<EffectTechnique>)_techniques).GetEnumerator();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()

@@ -1,354 +1,460 @@
-// #region License
-// /*
-// Microsoft Public License (Ms-PL)
-// MonoGame - Copyright © 2009 The MonoGame Team
-// 
-// All rights reserved.
-// 
-// This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
-// accept the license, do not use the software.
-// 
-// 1. Definitions
-// The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
-// U.S. copyright law.
-// 
-// A "contribution" is the original software, or any additions or changes to the software.
-// A "contributor" is any person that distributes its contribution under this license.
-// "Licensed patents" are a contributor's patent claims that read directly on its contribution.
-// 
-// 2. Grant of Rights
-// (A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-// each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
-// (B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-// each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
-// 
-// 3. Conditions and Limitations
-// (A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
-// (B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
-// your patent license from such contributor to the software ends automatically.
-// (C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
-// notices that are present in the software.
-// (D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
-// a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
-// code form, you may only do so under a license that complies with this license.
-// (E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
-// or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
-// permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
-// purpose and non-infringement.
-// */
-// #endregion License
-// 
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
 using System.IO;
-using OpenTK.Graphics.ES20;
-using System.Linq;
+using MonoGame.Framework.Utilities;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
 	public class Effect : GraphicsResource
     {
-        public EffectParameterCollection Parameters { get; set; }
-        public EffectTechniqueCollection Techniques { get; set; }		
-		
-		internal List<EffectParameter> _textureMappings = new List<EffectParameter>();
-
-		private int fragment_handle;
-        private int vertex_handle;
-        private bool fragment;
-        private bool vertex;
-		
-		internal List<int> vertexShaders = new List<int>();
-		internal List<int> fragmentShaders = new List<int>();
-
-		protected Effect(Effect cloneSource) : this(cloneSource.GraphicsDevice)
-		{
-			this.CurrentTechnique = cloneSource.CurrentTechnique;
-			this.Name = cloneSource.Name;
-			this.Parameters = cloneSource.Parameters;
-			this.Tag = cloneSource.Tag;
-			this.Techniques = cloneSource.Techniques;
-		}
-
-		public Effect(GraphicsDevice aGraphicsDevice, byte[] effectCode): this(aGraphicsDevice)
-		{						
-			int fragmentblocklength = BitConverter.ToInt32(effectCode, 0);
-
-            int vertexblocklength = BitConverter.ToInt32(effectCode, fragmentblocklength + 4);
-
-            if (fragmentblocklength != 0)
-            {
-                fragment_handle = GL.CreateShader( All.FragmentShader );
-                fragment = true;
-            }
-
-            if (vertexblocklength != 0)
-            {
-                vertex_handle = GL.CreateShader( All.VertexShader );
-                vertex = true;
-            }
-
-            if (fragment)
-            {
-                string[] fragmentstring = new string[1] { Encoding.UTF8.GetString(effectCode, 4, fragmentblocklength) };
-                int[] fragmentLength = new int[1] { fragmentstring[0].Length };
-                GL.ShaderSource(fragment_handle, 1, fragmentstring, fragmentLength);
-            }
-
-            if (vertex)
-            {
-                string[] vertexstring = new string[1] { Encoding.UTF8.GetString(effectCode, fragmentblocklength + 8, vertexblocklength) };
-                int[] vertexLength = new int[1] { vertexstring[0].Length };
-                GL.ShaderSource(vertex_handle, 1, vertexstring, vertexLength);
-            }
-			
-			int compiled = 0;
-
-            if (fragment)
-            {
-                GL.CompileShader(fragment_handle);
-				
-				GL.GetShader(fragment_handle, All.CompileStatus, ref compiled );
-				if (compiled == (int)All.False)
-				{
-#if DEBUG					
-					Console.Write("Fragment Compilation Failed!");
-#endif
-				}
-            }
-
-            if (vertex)
-            {
-                GL.CompileShader(vertex_handle);
-				GL.GetShader(vertex_handle, All.CompileStatus, ref compiled );
-				if (compiled == (int)All.False)
-				{
-#if DEBUG					
-					Console.Write("Vertex Compilation Failed!");
-#endif
-				}
-            }
-
-		}
-		
-		internal Effect(GraphicsDevice aGraphicsDevice)
+        struct MGFXHeader 
         {
-            if (aGraphicsDevice == null)
-            {
-                throw new ArgumentNullException("Graphics Device Cannot Be Null");
-            }
-			this.graphicsDevice = aGraphicsDevice;
-			
-            Parameters = new EffectParameterCollection();
-            Techniques = new EffectTechniqueCollection();
-            CurrentTechnique = new EffectTechnique(this);
+            /// <summary>
+            /// The MonoGame Effect file format header identifier ("MGFX"). 
+            /// </summary>
+            public static readonly int MGFXSignature = (BitConverter.IsLittleEndian) ? 0x5846474D: 0x4D474658;
+
+            /// <summary>
+            /// The current MonoGame Effect file format versions
+            /// used to detect old packaged content.
+            /// </summary>
+            /// <remarks>
+            /// We should avoid supporting old versions for very long if at all 
+            /// as users should be rebuilding content when packaging their game.
+            /// </remarks>
+            public const int MGFXVersion = 9;
+
+            public int Signature;
+            public int Version;
+            public int Profile;
+            public int EffectKey;
+            public int HeaderSize;
         }
-		
-		internal Effect (GraphicsDevice aGraphicsDevice, string aFileName) : this(aGraphicsDevice)
+
+        public EffectParameterCollection Parameters { get; private set; }
+
+        public EffectTechniqueCollection Techniques { get; private set; }
+
+        public EffectTechnique CurrentTechnique { get; set; }
+  
+        internal ConstantBuffer[] ConstantBuffers { get; private set; }
+
+        private Shader[] _shaders;
+
+	    private readonly bool _isClone;
+
+        internal Effect(GraphicsDevice graphicsDevice)
 		{
-#if ANDROID
-			StreamReader streamReader = new StreamReader(Game.Activity.Assets.Open(aFileName));
-#else			
-			StreamReader streamReader = new StreamReader (aFileName);
-#endif			
-			string text = streamReader.ReadToEnd ();
-			streamReader.Close ();
+            if (graphicsDevice == null)
+            {
+                throw new ArgumentNullException("graphicsDevice", FrameworkResources.ResourceCreationWhenDeviceIsNull);
+            }
+            this.GraphicsDevice = graphicsDevice;
+		}
 			
-			if ( aFileName.ToLower().Contains("fsh") )
-			{
-				CreateFragmentShaderFromSource(text);
-			}
-			else if ( aFileName.ToLower().Contains("vsh") )
-			{
-				CreateVertexShaderFromSource(text);
-			}			
-			else
-			{
-				throw new ArgumentException( aFileName + " not supported!" );
-			}
-			
-			DefineTechnique ("Technique1", "Pass1", 0, 0);
-			CurrentTechnique = Techniques ["Technique1"];
+		protected Effect(Effect cloneSource)
+            : this(cloneSource.GraphicsDevice)
+		{
+            _isClone = true;
+            Clone(cloneSource);
 		}
 
-        internal virtual void Apply()
+        public Effect(GraphicsDevice graphicsDevice, byte[] effectCode)
+            : this(graphicsDevice, effectCode, 0, effectCode.Length)
         {
-     
         }
-		
-		protected internal virtual void OnApply ()
+
+
+        public Effect (GraphicsDevice graphicsDevice, byte[] effectCode, int index, int count)
+            : this(graphicsDevice)
 		{
-			
-		}
-		
-		protected void CreateVertexShaderFromSource(string source)
-		{
-			int shader = GL.CreateShader (All.VertexShader);
-			// Attach the loaded source string to the shader object
-			// TODO GL.ShaderSource(shader, source);
-			// Compile the shader
-			GL.CompileShader (shader);
-			
-			vertexShaders.Add(shader);			
-		}
-		
-		
-		protected void CreateFragmentShaderFromSource(string source)
-		{
-			int shader = GL.CreateShader (All.FragmentShader);
-			// Attach the loaded source string to the shader object
-			// TODO GL.ShaderSource (shader, source);
-			// Compile the shader
-			GL.CompileShader (shader);
-			
-			fragmentShaders.Add(shader);			
-		}
-		
-		protected void DefineTechnique (string techniqueName, string passName, int vertexIndex, int fragmentIndex)
-		{
-			EffectTechnique tech = new EffectTechnique(this);
-			tech.Name = techniqueName;
-			EffectPass pass = new EffectPass(tech);
-			pass.Name = passName;
-#if ANDROID			
-			pass.VertexIndex = vertexIndex;
-			pass.FragmentIndex = fragmentIndex;
-			pass.ApplyPass(); 
-#endif			
-			tech.Passes._passes.Add(pass);
-			Techniques._techniques.Add(tech);
-#if ANDROID			
-			LogShaderParameters(String.Format("Technique {0} - Pass {1} :" ,tech.Name ,pass.Name), pass.shaderProgram);
-#endif			
-			
-		}
-		
-		public void Begin()
-		{
-		}
-		
-		public void Begin(SaveStateMode saveStateMode)
-		{
-			
-		}
-		
+			// By default we currently cache all unique byte streams
+			// and use cloning to populate the effect with parameters,
+			// techniques, and passes.
+			//
+			// This means all the immutable types in an effect:
+			//
+			//  - Shaders
+			//  - Annotations
+			//  - Names
+			//  - State Objects
+			//
+			// Are shared for every instance of an effect while the 
+			// parameter values and constant buffers are copied.
+			//
+			// This might need to change slightly if/when we support
+			// shared constant buffers as 'new' should return unique
+			// effects without any shared instance state.
+ 
+            //Read the header
+            MGFXHeader header = ReadHeader(effectCode, index);
+			var effectKey = header.EffectKey;
+			int headerSize = header.HeaderSize;
+
+            // First look for it in the cache.
+            //
+            Effect cloneSource;
+            if (!graphicsDevice.EffectCache.TryGetValue(effectKey, out cloneSource))
+            {
+                using (var stream = new MemoryStream(effectCode, index + headerSize, count - headerSize, false))
+            	using (var reader = new BinaryReaderEx(stream))
+            {
+                // Create one.
+                cloneSource = new Effect(graphicsDevice);
+                    cloneSource.ReadEffect(reader);
+
+                // Cache the effect for later in its original unmodified state.
+                    graphicsDevice.EffectCache.Add(effectKey, cloneSource);
+                }
+            }
+
+            // Clone it.
+            _isClone = true;
+            Clone(cloneSource);
+        }
+
+        private MGFXHeader ReadHeader(byte[] effectCode, int index)
+        {
+            MGFXHeader header;
+            header.Signature = BitConverter.ToInt32(effectCode, index); index += 4;
+            header.Version = (int)effectCode[index++];
+            header.Profile = (int)effectCode[index++];
+            header.EffectKey = BitConverter.ToInt32(effectCode, index); index += 4;
+            header.HeaderSize = index;
+
+            if (header.Signature != MGFXHeader.MGFXSignature)
+                throw new Exception("This does not appear to be a MonoGame MGFX file!");
+            if (header.Version < MGFXHeader.MGFXVersion)
+                throw new Exception("This MGFX effect is for an older release of MonoGame and needs to be rebuilt.");
+            if (header.Version > MGFXHeader.MGFXVersion)
+                throw new Exception("This MGFX effect seems to be for a newer release of MonoGame.");
+
+            if (header.Profile != Shader.Profile)
+                throw new Exception("This MGFX effect was built for a different platform!");          
+            
+            return header;
+        }
+
+        /// <summary>
+        /// Clone the source into this existing object.
+        /// </summary>
+        /// <remarks>
+        /// Note this is not overloaded in derived classes on purpose.  This is
+        /// only a reason this exists is for caching effects.
+        /// </remarks>
+        /// <param name="cloneSource">The source effect to clone from.</param>
+        private void Clone(Effect cloneSource)
+        {
+            Debug.Assert(_isClone, "Cannot clone into non-cloned effect!");
+
+            // Copy the mutable members of the effect.
+            Parameters = cloneSource.Parameters.Clone();
+            Techniques = cloneSource.Techniques.Clone(this);
+
+            // Make a copy of the immutable constant buffers.
+            ConstantBuffers = new ConstantBuffer[cloneSource.ConstantBuffers.Length];
+            for (var i = 0; i < cloneSource.ConstantBuffers.Length; i++)
+                ConstantBuffers[i] = new ConstantBuffer(cloneSource.ConstantBuffers[i]);
+
+            // Find and set the current technique.
+            for (var i = 0; i < cloneSource.Techniques.Count; i++)
+            {
+                if (cloneSource.Techniques[i] == cloneSource.CurrentTechnique)
+                {
+                    CurrentTechnique = Techniques[i];
+                    break;
+                }
+            }
+
+            // Take a reference to the original shader list.
+            _shaders = cloneSource._shaders;
+        }
+
+        /// <summary>
+        /// Returns a deep copy of the effect where immutable types 
+        /// are shared and mutable data is duplicated.
+        /// </summary>
+        /// <remarks>
+        /// See "Cloning an Effect" in MSDN:
+        /// http://msdn.microsoft.com/en-us/library/windows/desktop/ff476138(v=vs.85).aspx
+        /// </remarks>
+        /// <returns>The cloned effect.</returns>
 		public virtual Effect Clone()
 		{
-			Effect ef = new Effect(this);
-			return ef;
+            return new Effect(this);
 		}
-		
-		public void End()
-		{
-		}
-		
-		private static string TryFindAnyCased(string search, string[] arr, params string[] extensions)
+
+        protected internal virtual void OnApply()
         {
-            return arr.FirstOrDefault(s => extensions.Any(ext => s.ToLower() == (search.ToLower() + ext)));
         }
 
-        private static bool Contains(string search, string[] arr)
+        protected override void Dispose(bool disposing)
         {
-            return arr.Any(s => s == search);
-        }
-		
-		internal static string Normalize(string FileName)
-		{
-#if ANDROID
-			int index = FileName.LastIndexOf(Path.DirectorySeparatorChar);
-            string path = string.Empty;
-            string file = FileName;
-            if (index >= 0)
+            if (!IsDisposed)
             {
-                file = FileName.Substring(index + 1, FileName.Length - index - 1);
-                path = FileName.Substring(0, index);
+                if (disposing)
+                {
+                    if (!_isClone)
+                    {
+                        // Only the clone source can dispose the shaders.
+                        if (_shaders != null)
+                        {
+                            foreach (var shader in _shaders)
+                                shader.Dispose();
+                        }
+                    }
+
+                    if (ConstantBuffers != null)
+                    {
+                        foreach (var buffer in ConstantBuffers)
+                            buffer.Dispose();
+                        ConstantBuffers = null;
+                    }
+                }
             }
-            string[] files = Game.Activity.Assets.List(path);
 
-            if (Contains(file, files))
-                return FileName;
-			
-			// Check the file extension
-			if (!string.IsNullOrEmpty(Path.GetExtension(FileName)))
-			{
-				return null;
-			}
-			
-            return Path.Combine(path, TryFindAnyCased(file, files, ".fsh", ".vsh"));
-#else			
-			if (File.Exists(FileName))
-				return FileName;
-			
-			// Check the file extension
-			if (!string.IsNullOrEmpty(Path.GetExtension(FileName)))
-			{
-				return null;
-			}
-			
-			// Concat the file name with valid extensions
-			if (File.Exists(FileName+".fsh"))
-				return FileName+".fsh";
-			if (File.Exists(FileName+".vsh"))
-				return FileName+".vsh";
-			
-			return null;
-#endif			
-		}
-		
-		public EffectTechnique CurrentTechnique 
-		{ 
-			get; set; 
-		}
-		
-		private int GetUniformUserInedx(string uniformName)
-		{
-			int sPos = uniformName.LastIndexOf("_s");
-			int index;
-			
-			// if there's no such construct on the string or it's not followed by numbers only
-			if (sPos == -1 || !int.TryParse(uniformName.Substring(sPos + 2), out index))
-			    return -1; // no user index
-				
-			return index;
-		}
-		
-		// Output the log of an object
-		private void LogShaderParameters (string whichObj, int obj)
-		{
-			int actUnis = 0;
-			Parameters._parameters.Clear();
-			
-			GL.GetProgram (obj, All.ActiveUniforms, ref @actUnis);
+            base.Dispose(disposing);
+        }
 
-			int size;
-			All type = All.BoolVec2;
-			string name = new StringBuilder(100).ToString();
-			int length;
-			
-			for (int x =0; x < actUnis; x++) 
-			{
-				int uniformLocation, userIndex;
-				string uniformName;
-				size = length = 0;
-				
-				GL.GetActiveUniform((uint)obj,(uint)x,100,ref length,ref size, ref type, name);
-				
-				uniformName = name.ToString();
-				
-				userIndex = GetUniformUserInedx(uniformName);
-				
-				uniformLocation = GL.GetUniformLocation(obj, uniformName);
-				
-				EffectParameter efp = new EffectParameter(this, uniformName, x, userIndex, uniformLocation,
-				                                          type.ToString(), length);
-				Parameters._parameters.Add(efp.Name, efp);
-				if (efp.ParameterType == EffectParameterType.Texture2D) {
-					_textureMappings.Add(efp);
+        internal protected override void GraphicsDeviceResetting()
+        {
+            for (var i = 0; i < ConstantBuffers.Length; i++)
+                ConstantBuffers[i].Clear();
+        }
+
+        #region Effect File Reader
+
+		private void ReadEffect (BinaryReaderEx reader)
+		{
+			// TODO: Maybe we should be reading in a string 
+			// table here to save some bytes in the file.
+
+			// Read in all the constant buffers.
+			var buffers = (int)reader.ReadByte ();
+			ConstantBuffers = new ConstantBuffer[buffers];
+			for (var c = 0; c < buffers; c++) 
+            {				
+				var name = reader.ReadString ();               
+
+				// Create the backing system memory buffer.
+				var sizeInBytes = (int)reader.ReadInt16 ();
+
+				// Read the parameter index values.
+				var parameters = new int[reader.ReadByte ()];
+				var offsets = new int[parameters.Length];
+				for (var i = 0; i < parameters.Length; i++) 
+                {
+					parameters [i] = (int)reader.ReadByte ();
+					offsets [i] = (int)reader.ReadUInt16 ();
 				}
+
+                var buffer = new ConstantBuffer(GraphicsDevice,
+				                                sizeInBytes,
+				                                parameters,
+				                                offsets,
+				                                name);
+                ConstantBuffers[c] = buffer;
+            }
+
+            // Read in all the shader objects.
+            var shaders = (int)reader.ReadByte();
+            _shaders = new Shader[shaders];
+            for (var s = 0; s < shaders; s++)
+                _shaders[s] = new Shader(GraphicsDevice, reader);
+
+            // Read in the parameters.
+            Parameters = ReadParameters(reader);
+
+            // Read the techniques.
+            var techniqueCount = (int)reader.ReadByte();
+            var techniques = new EffectTechnique[techniqueCount];
+            for (var t = 0; t < techniqueCount; t++)
+            {
+                var name = reader.ReadString();
+
+                var annotations = ReadAnnotations(reader);
+
+                var passes = ReadPasses(reader, this, _shaders);
+
+                techniques[t] = new EffectTechnique(this, name, passes, annotations);
+            }
+
+            Techniques = new EffectTechniqueCollection(techniques);
+            CurrentTechnique = Techniques[0];
+        }
+
+        private static EffectAnnotationCollection ReadAnnotations(BinaryReader reader)
+        {
+            var count = (int)reader.ReadByte();
+            if (count == 0)
+                return EffectAnnotationCollection.Empty;
+
+            var annotations = new EffectAnnotation[count];
+
+            // TODO: Annotations are not implemented!
+
+            return new EffectAnnotationCollection(annotations);
+        }
+
+        private static EffectPassCollection ReadPasses(BinaryReader reader, Effect effect, Shader[] shaders)
+        {
+            var count = (int)reader.ReadByte();
+            var passes = new EffectPass[count];
+
+            for (var i = 0; i < count; i++)
+            {
+                var name = reader.ReadString();
+                var annotations = ReadAnnotations(reader);
+
+                // Get the vertex shader.
+                Shader vertexShader = null;
+                var shaderIndex = (int)reader.ReadByte();
+                if (shaderIndex != 255)
+                    vertexShader = shaders[shaderIndex];
+
+                // Get the pixel shader.
+                Shader pixelShader = null;
+                shaderIndex = (int)reader.ReadByte();
+                if (shaderIndex != 255)
+                    pixelShader = shaders[shaderIndex];
+
+				BlendState blend = null;
+				DepthStencilState depth = null;
+				RasterizerState raster = null;
+				if (reader.ReadBoolean())
+				{
+					blend = new BlendState
+					{
+						AlphaBlendFunction = (BlendFunction)reader.ReadByte(),
+						AlphaDestinationBlend = (Blend)reader.ReadByte(),
+						AlphaSourceBlend = (Blend)reader.ReadByte(),
+						BlendFactor = new Color(reader.ReadByte(), reader.ReadByte(), reader.ReadByte(), reader.ReadByte()),
+						ColorBlendFunction = (BlendFunction)reader.ReadByte(),
+						ColorDestinationBlend = (Blend)reader.ReadByte(),
+						ColorSourceBlend = (Blend)reader.ReadByte(),
+						ColorWriteChannels = (ColorWriteChannels)reader.ReadByte(),
+						ColorWriteChannels1 = (ColorWriteChannels)reader.ReadByte(),
+						ColorWriteChannels2 = (ColorWriteChannels)reader.ReadByte(),
+						ColorWriteChannels3 = (ColorWriteChannels)reader.ReadByte(),
+						MultiSampleMask = reader.ReadInt32(),
+					};
+				}
+				if (reader.ReadBoolean())
+				{
+					depth = new DepthStencilState
+					{
+						CounterClockwiseStencilDepthBufferFail = (StencilOperation)reader.ReadByte(),
+						CounterClockwiseStencilFail = (StencilOperation)reader.ReadByte(),
+						CounterClockwiseStencilFunction = (CompareFunction)reader.ReadByte(),
+						CounterClockwiseStencilPass = (StencilOperation)reader.ReadByte(),
+						DepthBufferEnable = reader.ReadBoolean(),
+						DepthBufferFunction = (CompareFunction)reader.ReadByte(),
+						DepthBufferWriteEnable = reader.ReadBoolean(),
+						ReferenceStencil = reader.ReadInt32(),
+						StencilDepthBufferFail = (StencilOperation)reader.ReadByte(),
+						StencilEnable = reader.ReadBoolean(),
+						StencilFail = (StencilOperation)reader.ReadByte(),
+						StencilFunction = (CompareFunction)reader.ReadByte(),
+						StencilMask = reader.ReadInt32(),
+						StencilPass = (StencilOperation)reader.ReadByte(),
+						StencilWriteMask = reader.ReadInt32(),
+						TwoSidedStencilMode = reader.ReadBoolean(),
+					};
+				}
+				if (reader.ReadBoolean())
+				{
+					raster = new RasterizerState
+					{
+						CullMode = (CullMode)reader.ReadByte(),
+						DepthBias = reader.ReadSingle(),
+						FillMode = (FillMode)reader.ReadByte(),
+						MultiSampleAntiAlias = reader.ReadBoolean(),
+						ScissorTestEnable = reader.ReadBoolean(),
+						SlopeScaleDepthBias = reader.ReadSingle(),
+					};
+				}
+
+                passes[i] = new EffectPass(effect, name, vertexShader, pixelShader, blend, depth, raster, annotations);
 			}
-			
+
+            return new EffectPassCollection(passes);
 		}
+
+		private static EffectParameterCollection ReadParameters(BinaryReaderEx reader)
+		{
+			var count = reader.Read7BitEncodedInt();
+            if (count == 0)
+                return EffectParameterCollection.Empty;
+
+            var parameters = new EffectParameter[count];
+			for (var i = 0; i < count; i++)
+			{
+				var class_ = (EffectParameterClass)reader.ReadByte();				
+                var type = (EffectParameterType)reader.ReadByte();
+				var name = reader.ReadString();
+				var semantic = reader.ReadString();
+				var annotations = ReadAnnotations(reader);
+				var rowCount = (int)reader.ReadByte();
+				var columnCount = (int)reader.ReadByte();
+
+				var elements = ReadParameters(reader);
+				var structMembers = ReadParameters(reader);
+
+				object data = null;
+				if (elements.Count == 0 && structMembers.Count == 0)
+				{
+					switch (type)
+					{						
+                        case EffectParameterType.Bool:
+                        case EffectParameterType.Int32:
+#if !OPENGL
+                            // Under most platforms we properly store integers and 
+                            // booleans in an integer type.
+                            //
+                            // MojoShader on the otherhand stores everything in float
+                            // types which is why this code is disabled under OpenGL.
+					        {
+					            var buffer = new int[rowCount * columnCount];								
+                                for (var j = 0; j < buffer.Length; j++)
+                                    buffer[j] = reader.ReadInt32();
+                                data = buffer;
+                                break;
+					        }
+#endif
+
+						case EffectParameterType.Single:
+							{
+								var buffer = new float[rowCount * columnCount];
+								for (var j = 0; j < buffer.Length; j++)
+                                    buffer[j] = reader.ReadSingle();
+                                data = buffer;
+                                break;							
+                            }
+
+                        case EffectParameterType.String:
+                            // TODO: We have not investigated what a string
+                            // type should do in the parameter list.  Till then
+                            // throw to let the user know.
+							throw new NotSupportedException();
+
+                        default:
+                            // NOTE: We skip over all other types as they 
+                            // don't get added to the constant buffer.
+					        break;
+					}
+                }
+
+				parameters[i] = new EffectParameter(
+					class_, type, name, rowCount, columnCount, semantic, 
+					annotations, elements, structMembers, data);
+			}
+
+			return new EffectParameterCollection(parameters);
+		}
+        #endregion // Effect File Reader
 	}
 }

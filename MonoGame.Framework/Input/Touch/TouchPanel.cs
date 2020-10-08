@@ -38,101 +38,119 @@
 // */
 #endregion License
 
-#region Using clause
 using System;
-using System.Collections;
-using System.Collections.Generic;
-#endregion Using clause
 
 namespace Microsoft.Xna.Framework.Input.Touch
 {
+    /// <summary>
+    /// Allows retrieval of information from Touch Panel device.
+    /// </summary>
     public static class TouchPanel
     {
-		internal static TouchCollection Collection = new TouchCollection();
-		internal static Queue<GestureSample> GestureList = new Queue<GestureSample>();
-		internal static event EventHandler EnabledGesturesChanged;
-		
-        public static TouchPanelCapabilities GetCapabilities()
-        {
-			// Go off and create an updated TouchPanelCapabilities with the latest state			
-            return new TouchPanelCapabilities(false,true,8);;
-        }
+        internal static GameWindow PrimaryWindow;
 
+        /// <summary>
+        /// Gets the current state of the touch panel.
+        /// </summary>
+        /// <returns><see cref="TouchCollection"/></returns>
         public static TouchCollection GetState()
         {
-			TouchCollection result = new TouchCollection(Collection);		
-			Collection.Update();
-			return result;
-        }       
-		
-		public static void Reset()
-		{
-			Collection.Clear();
-		}
-		
+            return PrimaryWindow.TouchPanelState.GetState();
+        }
+
+        public static TouchPanelState GetState(GameWindow window)
+        {
+            return window.TouchPanelState;
+        }
+
+        public static TouchPanelCapabilities GetCapabilities()
+        {
+            return PrimaryWindow.TouchPanelState.GetCapabilities();
+        }
+
+        internal static void AddEvent(int id, TouchLocationState state, Vector2 position)
+        {
+            AddEvent(id, state, position, false);
+        }
+
+        internal static void AddEvent(int id, TouchLocationState state, Vector2 position, bool isMouse)
+        {
+            PrimaryWindow.TouchPanelState.AddEvent(id, state, position, isMouse);
+        }
+
+        /// <summary>
+        /// Returns the next available gesture on touch panel device.
+        /// </summary>
+        /// <returns><see cref="GestureSample"/></returns>
 		public static GestureSample ReadGesture()
         {
-			return GestureList.Dequeue();			
+            // Return the next gesture.
+            return PrimaryWindow.TouchPanelState.GestureList.Dequeue();			
         }
 
+        /// <summary>
+        /// The window handle of the touch panel. Purely for Xna compatibility.
+        /// </summary>
+        public static IntPtr WindowHandle
+        {
+            get { return PrimaryWindow.TouchPanelState.WindowHandle; }
+            set { PrimaryWindow.TouchPanelState.WindowHandle = value; }
+        }
+
+        /// <summary>
+        /// Gets or sets the display height of the touch panel.
+        /// </summary>
         public static int DisplayHeight
         {
-            get
-            {
-#if ANDROID				
-				return (int)Game.Activity.Resources.DisplayMetrics.HeightPixels;
-#else
-                return Game.Instance.Window.ClientBounds.Height;
-#endif
-            }
-            set
-            {
-            }
+            get { return PrimaryWindow.TouchPanelState.DisplayHeight; }
+            set { PrimaryWindow.TouchPanelState.DisplayHeight = value; }
         }
 
+        /// <summary>
+        /// Gets or sets the display orientation of the touch panel.
+        /// </summary>
         public static DisplayOrientation DisplayOrientation
         {
-            get;
-            set;
+            get { return PrimaryWindow.TouchPanelState.DisplayOrientation; }
+            set { PrimaryWindow.TouchPanelState.DisplayOrientation = value; }
         }
 
+        /// <summary>
+        /// Gets or sets the display width of the touch panel.
+        /// </summary>
         public static int DisplayWidth
         {
-            get
-            {
-#if ANDROID				
-				return (int)Game.Activity.Resources.DisplayMetrics.WidthPixels;
-#else
-                return Game.Instance.Window.ClientBounds.Width;
-#endif				
-            }
-            set
-            {
-            }
+            get { return PrimaryWindow.TouchPanelState.DisplayWidth; }
+            set { PrimaryWindow.TouchPanelState.DisplayWidth = value; }
         }
 		
-		private static GestureType _enabledGestures = GestureType.None;
+        /// <summary>
+        /// Gets or sets enabled gestures.
+        /// </summary>
         public static GestureType EnabledGestures
         {
-            get
-			{ 
-				return _enabledGestures;
-			}
-            set
-			{
-				var prev=_enabledGestures;
-				_enabledGestures = value;
-				if (_enabledGestures!=prev && EnabledGesturesChanged!=null)
-					EnabledGesturesChanged(null, null);
-			}
+            get { return PrimaryWindow.TouchPanelState.EnabledGestures; }
+            set { PrimaryWindow.TouchPanelState.EnabledGestures = value; }
         }
 
+        public static bool EnableMouseTouchPoint
+        {
+            get { return PrimaryWindow.TouchPanelState.EnableMouseTouchPoint; }
+            set { PrimaryWindow.TouchPanelState.EnableMouseTouchPoint = value; }
+        }
+
+        public static bool EnableMouseGestures
+        {
+            get { return PrimaryWindow.TouchPanelState.EnableMouseGestures; }
+            set { PrimaryWindow.TouchPanelState.EnableMouseGestures = value; }
+        }
+
+        /// <summary>
+        /// Returns true if a touch gesture is available.
+        /// </summary>
         public static bool IsGestureAvailable
         {
-            get
-            {
-				return ( GestureList.Count > 0 );				
-            }
+            get { return PrimaryWindow.TouchPanelState.IsGestureAvailable; }
         }
     }
 }

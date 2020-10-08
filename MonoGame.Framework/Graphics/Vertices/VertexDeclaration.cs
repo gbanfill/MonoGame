@@ -1,157 +1,316 @@
-using Microsoft.Xna.Framework.Graphics;
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
+
 using System;
-using GL11 = OpenTK.Graphics.ES11.GL;
-using GL20 = OpenTK.Graphics.ES20.GL;
-using All11 = OpenTK.Graphics.ES11.All;
-using All20 = OpenTK.Graphics.ES20.All;
-using System.Runtime.InteropServices;
+using System.Collections.Generic;
+using MonoGame.Framework.Utilities;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-    public class VertexDeclaration : GraphicsResource
+    /// <summary>
+    /// Defines per-vertex data of a vertex buffer.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="VertexDeclaration"/> implements <see cref="IEquatable{T}"/> and can be used as
+    /// a key in a dictionary. Two vertex declarations are considered equal if the vertices are
+    /// structurally equivalent, i.e. the vertex elements and the vertex stride are identical. (The
+    /// properties <see cref="GraphicsResource.Name"/> and <see cref="GraphicsResource.Tag"/> are
+    /// ignored in <see cref="GetHashCode"/> and <see cref="Equals(VertexDeclaration)"/>!)
+    /// </remarks>
+    public partial class VertexDeclaration : GraphicsResource, IEquatable<VertexDeclaration>
     {
-        // Fields
-        internal VertexElement[] _elements;
-        internal int _vertexStride;
+        // Note for future refactoring:
+        // For XNA-compatibility VertexDeclaration is derived from GraphicsResource, which means it
+        // has GraphicsDevice, Name, Tag and implements IDisposable. This is unnecessary in
+        // MonoGame. VertexDeclaration.GraphicsDevice is never set.
+        // --> VertexDeclaration should be a lightweight immutable type. No base class, no IDisposable.
+        //     (Use the internal type Data. Do not expose a constructor. Use a factory method to
+        //     cache the vertex declarations.)
 
-        public VertexDeclaration(params VertexElement[] elements)
-        {
-            if ((elements == null) || (elements.Length == 0))
-            {
-                throw new ArgumentNullException("elements", "Elements cannot be empty");
-            }
-            else
-            {
-                VertexElement[] elementArray = (VertexElement[]) elements.Clone();
-                this._elements = elementArray;
-                this._vertexStride = getVertexStride(elementArray);
-            }
-        }
+        #region ----- Data shared between structurally identical vertex declarations -----
 
-        private static int getVertexStride(VertexElement[] elements)
+        private sealed class Data : IEquatable<Data>
         {
-            int max = 0;
-            for (int i = 0; i < elements.Length; i++)
+            private readonly int _hashCode;
+            public readonly int VertexStride;
+            public VertexElement[] Elements;
+
+            public Data(int vertexStride, VertexElement[] elements)
             {
-                int start = elements[i].Offset + elements[i].VertexElementFormat.GetTypeSize();
-                if (max < start)
+                VertexStride = vertexStride;
+                Elements = elements;
+
+                // Pre-calculate hash code for fast comparisons and lookup in dictionaries.
+                unchecked
                 {
-                    max = start;
+                    _hashCode = elements[0].GetHashCode();
+                    for (int i = 1; i < elements.Length; i++)
+                        _hashCode = (_hashCode * 397) ^ elements[i].GetHashCode();
+
+                    _hashCode = (_hashCode * 397) ^ elements.Length;
+                    _hashCode = (_hashCode * 397) ^ vertexStride;
                 }
             }
 
-            return max;
+            public override bool Equals(object obj)
+            {
+                return Equals(obj as Data);
+            }
+
+            public bool Equals(Data other)
+            {
+                if (ReferenceEquals(null, other))
+                    return false;
+                if (ReferenceEquals(this, other))
+                    return true;
+
+                if (_hashCode != other._hashCode
+                    || VertexStride != other.VertexStride
+                    || Elements.Length != other.Elements.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < Elements.Length; i++)
+                    if (!Elements[i].Equals(other.Elements[i]))
+                        return false;
+
+                return true;
+            }
+
+            public override int GetHashCode()
+            {
+                return _hashCode;
+            }
+        }
+        #endregion
+
+
+        #region ----- VertexDeclaration Cache -----
+
+        private static readonly Dictionary<Data, VertexDeclaration> _vertexDeclarationCache;
+
+        static VertexDeclaration()
+        {
+            _vertexDeclarationCache = new Dictionary<Data, VertexDeclaration>();
         }
 
+        internal static VertexDeclaration GetOrCreate(int vertexStride, VertexElement[] elements)
+        {
+            lock (_vertexDeclarationCache)
+            {
+                var data = new Data(vertexStride, elements);
+                VertexDeclaration vertexDeclaration;
+                if (!_vertexDeclarationCache.TryGetValue(data, out vertexDeclaration))
+                {
+                    // Data.Elements have already been set in the Data ctor. However, entries
+                    // in the vertex declaration cache must be immutable. Therefore, we create a 
+                    // copy of the array, which the user cannot access.
+                    data.Elements = (VertexElement[])elements.Clone();
+
+                    vertexDeclaration = new VertexDeclaration(data);
+                    _vertexDeclarationCache[data] = vertexDeclaration;
+                }
+
+                return vertexDeclaration;
+            }
+        }
+
+        private VertexDeclaration(Data data)
+        {
+            _data = data;
+        }
+        #endregion
+
+
+        private readonly Data _data;
+
+        /// <summary>
+        /// Gets the internal vertex elements array.
+        /// </summary>
+        /// <value>The internal vertex elements array.</value>
+        internal VertexElement[] InternalVertexElements
+        {
+            get { return _data.Elements; }
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VertexDeclaration"/> class.
+        /// </summary>
+        /// <param name="elements">The vertex elements.</param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="elements"/> is <see langword="null"/> or empty.
+        /// </exception>
+        public VertexDeclaration(params VertexElement[] elements)
+            : this(GetVertexStride(elements), elements)
+		{
+		}
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="VertexDeclaration"/> class.
+        /// </summary>
+        /// <param name="vertexStride">The size of a vertex (including padding) in bytes.</param>
+        /// <param name="elements">The vertex elements.</param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="elements"/> is <see langword="null"/> or empty.
+        /// </exception>
         public VertexDeclaration(int vertexStride, params VertexElement[] elements)
         {
             if ((elements == null) || (elements.Length == 0))
-            {
                 throw new ArgumentNullException("elements", "Elements cannot be empty");
-            }
-            else
-            {
-                VertexElement[] elementArray = (VertexElement[]) elements.Clone();
-                this._elements = elementArray;
-                this._vertexStride = vertexStride;
-            }
-        }
 
-        internal static VertexDeclaration FromType(Type vertexType)
-        {
-            if (vertexType == null)
+            lock (_vertexDeclarationCache)
             {
-                throw new ArgumentNullException("vertexType", "Cannot be null");
-            }
-            if (!vertexType.IsValueType)
-            {
-                object[] args = new object[] { vertexType };
-                throw new ArgumentException("vertexType", "Must be value type");
-            }
-            IVertexType type = Activator.CreateInstance(vertexType) as IVertexType;
-            if (type == null)
-            {
-                object[] objArray3 = new object[] { vertexType };
-                throw new ArgumentException("vertexData does not inherit IVertexType");
-            }
-            VertexDeclaration vertexDeclaration = type.VertexDeclaration;
-            if (vertexDeclaration == null)
-            {
-                object[] objArray2 = new object[] { vertexType };
-                throw new Exception("VertexDeclaration cannot be null");
-            }
-
-            return vertexDeclaration;
-        }
-
-        public static void PrepareForUse(VertexDeclaration vd, IntPtr ptr)
-        {
-            GLStateManager.VertexArray(true);
-
-            bool normal = false;
-            bool color = false;
-            bool texcoord = false;
-			
-            foreach (var ve in vd.GetVertexElements())
-            {
-                switch (ve.VertexElementUsage)
+                var data = new Data(vertexStride, elements);
+                VertexDeclaration vertexDeclaration;
+                if (_vertexDeclarationCache.TryGetValue(data, out vertexDeclaration))
                 {
-                    case VertexElementUsage.Position:
-                        GL11.VertexPointer(
-                            ve.VertexElementFormat.OpenGLNumberOfElements(),
-                            ve.VertexElementFormat.OpenGLValueType(),
-                            vd.VertexStride,
-                            (IntPtr)((uint)ptr + ve.Offset)
-                            );
-                        break;
-                    case VertexElementUsage.Color:
-                        GL11.ColorPointer(
-                            ve.VertexElementFormat.OpenGLNumberOfElements(),
-                            ve.VertexElementFormat.OpenGLValueType(),
-                            vd.VertexStride,
-                            (IntPtr)((uint)ptr + ve.Offset)
-                            );
-                            color = true;
-                        break;
-                    case VertexElementUsage.Normal:
-                        GL11.NormalPointer(
-                            ve.VertexElementFormat.OpenGLValueType(),
-                            vd.VertexStride,
-                            (IntPtr)((uint)ptr + ve.Offset)
-                            );
-                        normal = true;
-                        break;
-                    case VertexElementUsage.TextureCoordinate:
-                        GL11.TexCoordPointer(
-                            ve.VertexElementFormat.OpenGLNumberOfElements(),
-                            ve.VertexElementFormat.OpenGLValueType(),
-                            vd.VertexStride,
-                            (IntPtr)((uint)ptr + ve.Offset)
-                            );
-                        texcoord = true;
-                        break;
-                    default:
-                        throw new NotImplementedException();
+                    // Reuse existing data.
+                    _data = vertexDeclaration._data;
+                }
+                else
+                {
+                    // Cache new vertex declaration.
+                    data.Elements = (VertexElement[])elements.Clone();
+                    _data = data;
+                    _vertexDeclarationCache[data] = this;
                 }
             }
-
-            GLStateManager.TextureCoordArray(texcoord);
-            GLStateManager.ColorArray(color);
-            GLStateManager.NormalArray(normal);
         }
 
-        public VertexElement[] GetVertexElements()
-        {
-            return (VertexElement[]) this._elements.Clone();
-        }
+        private static int GetVertexStride(VertexElement[] elements)
+		{
+			int max = 0;
+			for (var i = 0; i < elements.Length; i++)
+			{
+                var start = elements[i].Offset + elements[i].VertexElementFormat.GetSize();
+				if (max < start)
+					max = start;
+			}
 
-        // Properties
-        public int VertexStride
-        {
-            get
+			return max;
+		}
+
+        /// <summary>
+        /// Returns the VertexDeclaration for Type.
+        /// </summary>
+        /// <param name="vertexType">A value type which implements the IVertexType interface.</param>
+        /// <returns>The VertexDeclaration.</returns>
+        /// <remarks>
+        /// Prefer to use VertexDeclarationCache when the declaration lookup
+        /// can be performed with a templated type.
+        /// </remarks>
+		internal static VertexDeclaration FromType(Type vertexType)
+		{
+			if (vertexType == null)
+				throw new ArgumentNullException("vertexType", "Cannot be null");
+
+            if (!ReflectionHelpers.IsValueType(vertexType))
             {
-                return this._vertexStride;
-            }
+				throw new ArgumentException("Must be value type", "vertexType");
+			}
+
+            var type = Activator.CreateInstance(vertexType) as IVertexType;
+			if (type == null)
+			{
+				throw new ArgumentException("vertexData does not inherit IVertexType");
+			}
+
+            var vertexDeclaration = type.VertexDeclaration;
+			if (vertexDeclaration == null)
+			{
+				throw new Exception("VertexDeclaration cannot be null");
+			}
+
+			return vertexDeclaration;
+		}
+
+        /// <summary>
+        /// Gets a copy of the vertex elements.
+        /// </summary>
+        /// <returns>A copy of the vertex elements.</returns>
+        public VertexElement[] GetVertexElements()
+		{
+			return (VertexElement[])_data.Elements.Clone();
+		}
+
+        /// <summary>
+        /// Gets the size of a vertex (including padding) in bytes.
+        /// </summary>
+        /// <value>The size of a vertex (including padding) in bytes.</value>
+        public int VertexStride
+		{
+			get { return _data.VertexStride; }
+		}
+
+        /// <summary>
+        /// Determines whether the specified <see cref="object"/> is equal to this instance.
+        /// </summary>
+        /// <param name="obj">The object to compare with the current object.</param>
+        /// <returns>
+        /// <see langword="true"/> if the specified <see cref="object"/> is equal to this instance;
+        /// otherwise, <see langword="false"/>.
+        /// </returns>
+        public override bool Equals(object obj)
+        {
+            return Equals(obj as VertexDeclaration);
+        }
+
+        /// <summary>
+        /// Determines whether the specified <see cref="VertexDeclaration"/> is equal to this
+        /// instance.
+        /// </summary>
+        /// <param name="other">The object to compare with the current object.</param>
+        /// <returns>
+        /// <see langword="true"/> if the specified <see cref="VertexDeclaration"/> is equal to this
+        /// instance; otherwise, <see langword="false"/>.
+        /// </returns>
+        public bool Equals(VertexDeclaration other)
+        {
+            return other != null && ReferenceEquals(_data, other._data);
+        }
+
+        /// <summary>
+        /// Returns a hash code for this instance.
+        /// </summary>
+        /// <returns>
+        /// A hash code for this instance, suitable for use in hashing algorithms and data
+        /// structures like a hash table.
+        /// </returns>
+        public override int GetHashCode()
+        {
+            return _data.GetHashCode();
+        }
+
+        /// <summary>
+        /// Compares two <see cref="VertexElement"/> instances to determine whether they are the
+        /// same.
+        /// </summary>
+        /// <param name="left">The first instance.</param>
+        /// <param name="right">The second instance.</param>
+        /// <returns>
+        /// <see langword="true"/> if the <paramref name="left"/> and <paramref name="right"/> are
+        /// the same; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool operator ==(VertexDeclaration left, VertexDeclaration right)
+        {
+            return Equals(left, right);
+        }
+
+        /// <summary>
+        /// Compares two <see cref="VertexElement"/> instances to determine whether they are
+        /// different.
+        /// </summary>
+        /// <param name="left">The first instance.</param>
+        /// <param name="right">The second instance.</param>
+        /// <returns>
+        /// <see langword="true"/> if the <paramref name="left"/> and <paramref name="right"/> are
+        /// the different; otherwise, <see langword="false"/>.
+        /// </returns>
+        public static bool operator !=(VertexDeclaration left, VertexDeclaration right)
+        {
+            return !Equals(left, right);
         }
     }
 }

@@ -35,45 +35,47 @@ namespace Microsoft.Xna.Framework.Graphics
 {
     public class DisplayModeCollection : IEnumerable<DisplayMode>
     {
-        private List<DisplayMode> modes;
-        
-        public static bool operator !=(DisplayModeCollection l, DisplayModeCollection r)
-        {
-            throw new NotImplementedException();
-        }
-
-        public static bool operator ==(DisplayModeCollection l, DisplayModeCollection r)
-        {
-            throw new NotImplementedException();
-        }
+        private readonly List<DisplayMode> _modes;
 
         public IEnumerable<DisplayMode> this[SurfaceFormat format]
         {
-            get { throw new NotImplementedException(); }
-        }
-
-        public override bool Equals(object obj)
-        {
-            throw new NotImplementedException();
+            get 
+            {
+                var list = new List<DisplayMode>();
+                foreach (var mode in _modes)
+                {
+                    if (mode.Format == format)
+                        list.Add(mode);
+                }
+                return list;
+            }
         }
 
         public IEnumerator<DisplayMode> GetEnumerator()
         {
-            return modes.GetEnumerator();
-        }
-
-        public override int GetHashCode()
-        {
-            throw new NotImplementedException();
+            return _modes.GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            throw new NotImplementedException();
+            return _modes.GetEnumerator();
         }
         
-        public DisplayModeCollection(List<DisplayMode> setmodes) {
-            modes = setmodes;
+        internal DisplayModeCollection(List<DisplayMode> modes) 
+        {
+            // Sort the modes in a consistent way that happens
+            // to match XNA behavior on some graphics devices.
+
+            modes.Sort(delegate(DisplayMode a, DisplayMode b)
+            {
+                if (a == b) 
+                    return 0;
+                if (a.Format <= b.Format && a.Width <= b.Width && a.Height <= b.Height) 
+                    return -1;
+                return 1;
+            });
+
+            _modes = modes;
         }
     }
 }

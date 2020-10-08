@@ -1,15 +1,34 @@
-using System;
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-	// http://msdn.microsoft.com/en-us/library/microsoft.xna.framework.graphics.effectparameterclass.aspx
+    /// <summary>
+    /// Defines classes for effect parameters and shader constants.
+    /// </summary>
 	public enum EffectParameterClass
 	{
-		Matrix,
-		Object,
+        /// <summary>
+        /// Scalar class type.
+        /// </summary>
 		Scalar,
-		Struct,
-		Vector
+        /// <summary>
+        /// Vector class type.
+        /// </summary>
+		Vector,
+        /// <summary>
+        /// Matrix class type.
+        /// </summary>
+		Matrix,
+        /// <summary>
+        /// Class type for textures, shaders or strings. 
+        /// </summary>
+		Object,
+        /// <summary>
+        /// Structure class type.
+        /// </summary>
+		Struct
 	}
 }
 

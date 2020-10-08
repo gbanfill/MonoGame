@@ -1,235 +1,156 @@
-#region License
-/*
-Microsoft Public License (Ms-PL)
-MonoGame - Copyright © 2009 The MonoGame Team
-
-All rights reserved.
-
-This license governs use of the accompanying software. If you use the software, you accept this license. If you do not
-accept the license, do not use the software.
-
-1. Definitions
-The terms "reproduce," "reproduction," "derivative works," and "distribution" have the same meaning here as under 
-U.S. copyright law.
-
-A "contribution" is the original software, or any additions or changes to the software.
-A "contributor" is any person that distributes its contribution under this license.
-"Licensed patents" are a contributor's patent claims that read directly on its contribution.
-
-2. Grant of Rights
-(A) Copyright Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-each contributor grants you a non-exclusive, worldwide, royalty-free copyright license to reproduce its contribution, prepare derivative works of its contribution, and distribute its contribution or any derivative works that you create.
-(B) Patent Grant- Subject to the terms of this license, including the license conditions and limitations in section 3, 
-each contributor grants you a non-exclusive, worldwide, royalty-free license under its licensed patents to make, have made, use, sell, offer for sale, import, and/or otherwise dispose of its contribution in the software or derivative works of the contribution in the software.
-
-3. Conditions and Limitations
-(A) No Trademark License- This license does not grant you rights to use any contributors' name, logo, or trademarks.
-(B) If you bring a patent claim against any contributor over patents that you claim are infringed by the software, 
-your patent license from such contributor to the software ends automatically.
-(C) If you distribute any portion of the software, you must retain all copyright, patent, trademark, and attribution 
-notices that are present in the software.
-(D) If you distribute any portion of the software in source code form, you may do so only under this license by including 
-a complete copy of this license with your distribution. If you distribute any portion of the software in compiled or object 
-code form, you may only do so under a license that complies with this license.
-(E) The software is licensed "as-is." You bear the risk of using it. The contributors give no express warranties, guarantees
-or conditions. You may have additional consumer rights under your local laws which this license cannot change. To the extent
-permitted under your local laws, the contributors exclude the implied warranties of merchantability, fitness for a particular
-purpose and non-infringement.
-*/
-#endregion License
+// MonoGame - Copyright (C) The MonoGame Team
+// This file is subject to the terms and conditions defined in
+// file 'LICENSE.txt', which is part of this source code package.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using MonoGame.Framework.Utilities;
 using System.Runtime.InteropServices;
 
-#if IPHONE
-using MonoTouch.OpenGLES;
-#endif
-#if ANDROID
-using Android.Opengl;
-using Android.Views;
-using OpenTK.Graphics;
-#endif
-
-using GL11 = OpenTK.Graphics.ES11.GL;
-using GL20 = OpenTK.Graphics.ES20.GL;
-using ALL11 = OpenTK.Graphics.ES11.All;
-using ALL20 = OpenTK.Graphics.ES20.All;
-
-
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 
 namespace Microsoft.Xna.Framework.Graphics
 {
-    public class GraphicsDevice : IDisposable
+    public partial class GraphicsDevice : IDisposable
     {
-        private GamePlatform _platform;
-        private ALL11 _preferedFilter;
-        private int _activeTexture = -1;
+        /// <summary>
+        /// Indicates if DX9 style pixel addressing or current standard
+        /// pixel addressing should be used. This flag is set to
+        /// <c>false</c> by default. If `UseHalfPixelOffset` is
+        /// `true` you have to add half-pixel offset to a Projection matrix.
+        /// See also <see cref="GraphicsDeviceManager.PreferHalfPixelOffset"/>.
+        /// </summary>
+        /// <remarks>
+        /// XNA uses DirectX9 for its graphics. DirectX9 interprets UV
+        /// coordinates differently from other graphics API's. This is
+        /// typically referred to as the half-pixel offset. MonoGame
+        /// replicates XNA behavior if this flag is set to <c>true</c>.
+        /// </remarks>
+        public bool UseHalfPixelOffset { get; private set; }
+
         private Viewport _viewport;
 
-        private bool _isDisposed = false;
-        public TextureCollection Textures { get; set; }
-        private BlendState _blendState = BlendState.Opaque;
-        private DepthStencilState _depthStencilState = DepthStencilState.Default;
-        private SamplerStateCollection _samplerStates = new SamplerStateCollection();
+        private bool _isDisposed;
 
-        internal List<IntPtr> _pointerCache = new List<IntPtr>();
-        private VertexBuffer _vertexBuffer = null;
-        private IndexBuffer _indexBuffer = null;
-        private uint VboIdArray;
-        private uint[] VboIdArrays;
-        private uint VboIdElement;
-        private int _currentArray;
-        private int _vbosAllocated = 1;
+        // On Intel Integrated graphics, there is a fast hw unit for doing
+        // clears to colors where all components are either 0 or 255.
+        // Despite XNA4 using Purple here, we use black (in Release) to avoid
+        // performance warnings on Intel/Mesa
+#if DEBUG
+        private static Color _discardColor = new Color(68, 34, 136, 255);
+#else
+        private static Color _discardColor = new Color(0, 0, 0, 255);
+#endif
 
-        public RasterizerState RasterizerState { get; set; }
+        private Color _blendFactor = Color.White;
+        private bool _blendFactorDirty;
 
-        private RenderTargetBinding[] currentRenderTargets;
-		
+        private BlendState _blendState;
+        private BlendState _actualBlendState;
+        private bool _blendStateDirty;
+
+        private BlendState _blendStateAdditive;
+        private BlendState _blendStateAlphaBlend;
+        private BlendState _blendStateNonPremultiplied;
+        private BlendState _blendStateOpaque;
+
+        private DepthStencilState _depthStencilState;
+        private DepthStencilState _actualDepthStencilState;
+        private bool _depthStencilStateDirty;
+
+        private DepthStencilState _depthStencilStateDefault;
+        private DepthStencilState _depthStencilStateDepthRead;
+        private DepthStencilState _depthStencilStateNone;
+
+        private RasterizerState _rasterizerState;
+        private RasterizerState _actualRasterizerState;
+        private bool _rasterizerStateDirty;
+
+        private RasterizerState _rasterizerStateCullClockwise;
+        private RasterizerState _rasterizerStateCullCounterClockwise;
+        private RasterizerState _rasterizerStateCullNone;
+
+        private Rectangle _scissorRectangle;
+        private bool _scissorRectangleDirty;
+
+        private VertexBufferBindings _vertexBuffers;
+        private bool _vertexBuffersDirty;
+
+        private IndexBuffer _indexBuffer;
+        private bool _indexBufferDirty;
+
+        private readonly RenderTargetBinding[] _currentRenderTargetBindings = new RenderTargetBinding[4];
+        private int _currentRenderTargetCount;
+        private readonly RenderTargetBinding[] _tempRenderTargetBinding = new RenderTargetBinding[1];
+
+        internal GraphicsCapabilities GraphicsCapabilities { get; private set; }
+
+        public TextureCollection VertexTextures { get; private set; }
+
+        public SamplerStateCollection VertexSamplerStates { get; private set; }
+
+        public TextureCollection Textures { get; private set; }
+
+        public SamplerStateCollection SamplerStates { get; private set; }
+
+        /// <summary>
+        /// Get or set the color a <see cref="RenderTarget2D"/> is cleared to when it is set.
+        /// </summary>
+        public static Color DiscardColor {
+			get { return _discardColor; }
+			set { _discardColor = value; }
+		}
+
+        /// <summary>
+        /// The active vertex shader.
+        /// </summary>
+        private Shader _vertexShader;
+        private bool _vertexShaderDirty;
+        private bool VertexShaderDirty
+        {
+            get { return _vertexShaderDirty; }
+        }
+
+        /// <summary>
+        /// The active pixel shader.
+        /// </summary>
+        private Shader _pixelShader;
+        private bool _pixelShaderDirty;
+        private bool PixelShaderDirty
+        {
+            get { return _pixelShaderDirty; }
+        }
+
+        private readonly ConstantBufferCollection _vertexConstantBuffers = new ConstantBufferCollection(ShaderStage.Vertex, 16);
+        private readonly ConstantBufferCollection _pixelConstantBuffers = new ConstantBufferCollection(ShaderStage.Pixel, 16);
+
+        /// <summary>
+        /// The cache of effects from unique byte streams.
+        /// </summary>
+        internal Dictionary<int, Effect> EffectCache;
+
+        // Resources may be added to and removed from the list from many threads.
+        private readonly object _resourcesLock = new object();
+
+        // Use WeakReference for the global resources list as we do not know when a resource
+        // may be disposed and collected. We do not want to prevent a resource from being
+        // collected by holding a strong reference to it in this list.
+        private readonly List<WeakReference> _resources = new List<WeakReference>();
+
 		// TODO Graphics Device events need implementing
 		public event EventHandler<EventArgs> DeviceLost;
 		public event EventHandler<EventArgs> DeviceReset;
 		public event EventHandler<EventArgs> DeviceResetting;
-		//public event EventHandler<ResourceCreatedEventArgs> ResourceCreated;
-		//public event EventHandler<ResourceDestroyedEventArgs> ResourceDestroyed;
+		public event EventHandler<ResourceCreatedEventArgs> ResourceCreated;
+		public event EventHandler<ResourceDestroyedEventArgs> ResourceDestroyed;
+        public event EventHandler<EventArgs> Disposing;
 
-        //OpenGL Rendering API
+        internal event EventHandler<PresentationEventArgs> PresentationChanged;
 
-#if ANDROID
-		[Obsolete(
-			"GraphicsDevice should be responsible for the version someday.  " +
-			"It shouldn't need to be told, it should be doing the telling")]
-		public static GLContextVersion OpenGLESVersion;
-#else
-		[Obsolete(
-			"GraphicsDevice should be responsible for the version someday.  " +
-			"It shouldn't need to be told, it should be doing the telling")]
-		public static EAGLRenderingAPI OpenGLESVersion;
-#endif
-
-		[Obsolete(
-			"GraphicsDevice should be responsible for the framebuffer someday.  " +
-			"It shouldn't need to be told, it should be doing the telling")]
-        public static int FrameBufferScreen;
-		[Obsolete(
-			"GraphicsDevice should be responsible for the DeafultFramebuffer someday.  " +
-			"It shouldn't need to be told, it should be doing the telling")]
-        public static bool DefaultFrameBuffer = true;
-
-        internal ALL11 PreferedFilter
-        {
-            get
-            {
-                return _preferedFilter;
-            }
-            set
-            {
-                _preferedFilter = value;
-            }
-
-        }
-
-        internal int ActiveTexture
-        {
-            get
-            {
-                return _activeTexture;
-            }
-            set
-            {
-                _activeTexture = value;
-            }
-        }
-
-        /// <summary>
-        /// This value indicates the # of VBO's the DrawUserPrimitive calls can cylce between.
-        /// Increase this to improve performance per frame.  Though, the more you have allocated
-        /// the more video memory permanently consumed.
-        /// </summary>
-        public int VBOsAllocated
-        {
-            get { return _vbosAllocated; }
-
-            set
-            {
-                var generate = false;
-                if (VboIdArrays != null)
-                {
-                    generate = true;
-                    if(_vbosAllocated > 0)
-                    {
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-                        if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                        {
-                            GL20.DeleteBuffers(_vbosAllocated, VboIdArrays);
-                        }
-                        else
-                        {
-                            GL11.DeleteBuffers(_vbosAllocated, VboIdArrays);
-                        }
-                    }
-                }
-
-                _vbosAllocated = value;
-
-                if(generate)
-                    GenerateVBOs();
-            }
-        }
-
-        private void GenerateVBOs()
-        {
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-            {
-                OpenTK.Graphics.ES20.GL.GetError();
-
-                VboIdArrays = new uint[_vbosAllocated];
-                GL20.GenBuffers(_vbosAllocated, VboIdArrays);
-
-                var er = OpenTK.Graphics.ES20.GL.GetError();
-                if (er != OpenTK.Graphics.ES20.All.NoError)
-                {
-                    VboIdArrays = null;
-                }
-            }
-            else
-            {
-                OpenTK.Graphics.ES11.GL.GetError();
-
-                VboIdArrays = new uint[_vbosAllocated];
-                GL11.GenBuffers(_vbosAllocated, VboIdArrays);
-
-                var er = OpenTK.Graphics.ES11.GL.GetError();
-                if (er != OpenTK.Graphics.ES11.All.NoError)
-                {
-                    VboIdArrays = null;
-                }
-            }
-            _currentArray = 0;
-        }
-
-        private void MoveToNextVBO()
-        {
-            _currentArray++;
-
-            if (_currentArray >= _vbosAllocated)
-            {
-                _currentArray = 0;
-            }
-        }
+        private int _maxVertexBufferSlots;
+        internal int MaxTextureSlots;
+        internal int MaxVertexTextureSlots;
 
         public bool IsDisposed
         {
@@ -239,1101 +160,1271 @@ namespace Microsoft.Xna.Framework.Graphics
             }
         }
 
-        public GraphicsDevice()
-        {
-            // Initialize the main viewport
-            _viewport = new Viewport();
-            _viewport.X = 0;
-            _viewport.Y = 0;
-            _viewport.Width = DisplayMode.Width;
-            _viewport.Height = DisplayMode.Height;
-            _viewport.MinDepth = 0.0f;
-            _viewport.MaxDepth = 1.0f;
-            Textures = new TextureCollection();
+		public bool IsContentLost {
+			get {
+				// We will just return IsDisposed for now
+				// as that is the only case I can see for now
+				return IsDisposed;
+			}
+		}
 
-            // Init RasterizerState
-            RasterizerState = new RasterizerState();
+        internal bool IsRenderTargetBound
+        {
+            get
+            {
+                return _currentRenderTargetCount > 0;
+            }
         }
 
-        internal void Initialize(GamePlatform platform)
+        internal DepthFormat ActiveDepthFormat
         {
-            _platform = platform;
-            
-#if IPHONE
-            if (OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
+            get
             {
-                //Initialize OpenGl states
-                GL20.Disable(ALL20.DepthTest);
-            }else{
-                // Initialize OpenGL states
-                GL11.Disable(ALL11.DepthTest);
-                GL11.TexEnv(ALL11.TextureEnv, ALL11.TextureEnvMode, (int)ALL11.Replace);
+                return IsRenderTargetBound
+                    ? _currentRenderTargetBindings[0].DepthFormat
+                    : PresentationParameters.DepthStencilFormat;
             }
-            VboIdArray = 0;
-            VboIdElement = 0;
+        }
+
+        public GraphicsAdapter Adapter
+        {
+            get;
+            private set;
+        }
+
+        internal GraphicsMetrics _graphicsMetrics;
+
+        /// <summary>
+        /// The rendering information for debugging and profiling.
+        /// The metrics are reset every frame after draw within <see cref="GraphicsDevice.Present"/>. 
+        /// </summary>
+        public GraphicsMetrics Metrics { get { return _graphicsMetrics; } set { _graphicsMetrics = value; } }
+
+        private GraphicsDebug _graphicsDebug;
+
+        /// <summary>
+        /// Access debugging APIs for the graphics subsystem.
+        /// </summary>
+        public GraphicsDebug GraphicsDebug { get { return _graphicsDebug; } set { _graphicsDebug = value; } }
+
+        internal GraphicsDevice()
+		{
+            PresentationParameters = new PresentationParameters();
+            PresentationParameters.DepthStencilFormat = DepthFormat.Depth24;
+            Setup();
+            GraphicsCapabilities = new GraphicsCapabilities();
+            GraphicsCapabilities.Initialize(this);
+            Initialize();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GraphicsDevice" /> class.
+        /// </summary>
+        /// <param name="adapter">The graphics adapter.</param>
+        /// <param name="graphicsProfile">The graphics profile.</param>
+        /// <param name="presentationParameters">The presentation options.</param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="presentationParameters"/> is <see langword="null"/>.
+        /// </exception>
+        public GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, PresentationParameters presentationParameters)
+        {
+            if (adapter == null)
+                throw new ArgumentNullException("adapter");
+            if (!adapter.IsProfileSupported(graphicsProfile))
+                throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
+            if (presentationParameters == null)
+                throw new ArgumentNullException("presentationParameters");
+            Adapter = adapter;
+            PresentationParameters = presentationParameters;
+            _graphicsProfile = graphicsProfile;
+            Setup();
+            GraphicsCapabilities = new GraphicsCapabilities();
+            GraphicsCapabilities.Initialize(this);
+
+            Initialize();
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="GraphicsDevice" /> class.
+        /// </summary>
+        /// <param name="adapter">The graphics adapter.</param>
+        /// <param name="graphicsProfile">The graphics profile.</param>
+        /// <param name="preferHalfPixelOffset"> Indicates if DX9 style pixel addressing or current standard pixel addressing should be used. This value is passed to <see cref="GraphicsDevice.UseHalfPixelOffset"/></param>
+        /// <param name="presentationParameters">The presentation options.</param>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="presentationParameters"/> is <see langword="null"/>.
+        /// </exception>
+        public GraphicsDevice(GraphicsAdapter adapter, GraphicsProfile graphicsProfile, bool preferHalfPixelOffset, PresentationParameters presentationParameters)
+        {
+            if (adapter == null)
+                throw new ArgumentNullException("adapter");
+            if (!adapter.IsProfileSupported(graphicsProfile))
+                throw new NoSuitableGraphicsDeviceException(String.Format("Adapter '{0}' does not support the {1} profile.", adapter.Description, graphicsProfile));
+            if (presentationParameters == null)
+                throw new ArgumentNullException("presentationParameters");
+#if DIRECTX
+            // TODO we need to figure out how to inject the half pixel offset into DX shaders
+            preferHalfPixelOffset = false;
+#endif
+            Adapter = adapter;
+            _graphicsProfile = graphicsProfile;
+            UseHalfPixelOffset = preferHalfPixelOffset;
+            PresentationParameters = presentationParameters;
+            Setup();
+            GraphicsCapabilities = new GraphicsCapabilities();
+            GraphicsCapabilities.Initialize(this);
+
+            Initialize();
+        }
+
+        private void Setup()
+        {
+#if DEBUG
+            if (DisplayMode == null)
+            {
+                throw new Exception(
+                    "Unable to determine the current display mode.  This can indicate that the " +
+                    "game is not configured to be HiDPI aware under Windows 10 or later.  See " +
+                    "https://github.com/MonoGame/MonoGame/issues/5040 for more information.");
+            }
+#endif
+
+            // Initialize the main viewport
+            _viewport = new Viewport (0, 0,
+			                         DisplayMode.Width, DisplayMode.Height);
+			_viewport.MaxDepth = 1.0f;
+
+            PlatformSetup();
+
+            VertexTextures = new TextureCollection(this, MaxVertexTextureSlots, true);
+            VertexSamplerStates = new SamplerStateCollection(this, MaxVertexTextureSlots, true);
+
+            Textures = new TextureCollection(this, MaxTextureSlots, false);
+            SamplerStates = new SamplerStateCollection(this, MaxTextureSlots, false);
+
+            _blendStateAdditive = BlendState.Additive.Clone();
+            _blendStateAlphaBlend = BlendState.AlphaBlend.Clone();
+            _blendStateNonPremultiplied = BlendState.NonPremultiplied.Clone();
+            _blendStateOpaque = BlendState.Opaque.Clone();
+
+            BlendState = BlendState.Opaque;
+
+            _depthStencilStateDefault = DepthStencilState.Default.Clone();
+            _depthStencilStateDepthRead = DepthStencilState.DepthRead.Clone();
+            _depthStencilStateNone = DepthStencilState.None.Clone();
+
+            DepthStencilState = DepthStencilState.Default;
+
+            _rasterizerStateCullClockwise = RasterizerState.CullClockwise.Clone();
+            _rasterizerStateCullCounterClockwise = RasterizerState.CullCounterClockwise.Clone();
+            _rasterizerStateCullNone = RasterizerState.CullNone.Clone();
+
+            RasterizerState = RasterizerState.CullCounterClockwise;
+
+            EffectCache = new Dictionary<int, Effect>();
+        }
+
+        ~GraphicsDevice()
+        {
+            Dispose(false);
+        }
+
+        internal int GetClampedMultisampleCount(int multiSampleCount)
+        {
+            if (multiSampleCount > 1)
+            {
+                // Round down MultiSampleCount to the nearest power of two
+                // hack from http://stackoverflow.com/a/2681094
+                // Note: this will return an incorrect, but large value
+                // for very large numbers. That doesn't matter because
+                // the number will get clamped below anyway in this case.
+                var msc = multiSampleCount;
+                msc = msc | (msc >> 1);
+                msc = msc | (msc >> 2);
+                msc = msc | (msc >> 4);
+                msc -= (msc >> 1);
+                // and clamp it to what the device can handle
+                if (msc > GraphicsCapabilities.MaxMultiSampleCount)
+                    msc = GraphicsCapabilities.MaxMultiSampleCount;
+
+                return msc;
+            }
+            else return 0;
+        }
+
+        internal void Initialize()
+        {
+            PlatformInitialize();
+
+            // Force set the default render states.
+            _blendStateDirty = _depthStencilStateDirty = _rasterizerStateDirty = true;
+            BlendState = BlendState.Opaque;
+            DepthStencilState = DepthStencilState.Default;
+            RasterizerState = RasterizerState.CullCounterClockwise;
+
+            // Clear the texture and sampler collections forcing
+            // the state to be reapplied.
+            VertexTextures.Clear();
+            VertexSamplerStates.Clear();
+            Textures.Clear();
+            SamplerStates.Clear();
+
+            // Clear constant buffers
+            _vertexConstantBuffers.Clear();
+            _pixelConstantBuffers.Clear();
+
+            // Force set the buffers and shaders on next ApplyState() call
+            _vertexBuffers = new VertexBufferBindings(_maxVertexBufferSlots);
+            _vertexBuffersDirty = true;
+            _indexBufferDirty = true;
+            _vertexShaderDirty = true;
+            _pixelShaderDirty = true;
+
+            // Set the default scissor rect.
+            _scissorRectangleDirty = true;
+            ScissorRectangle = _viewport.Bounds;
+
+            // Set the default render target.
+            ApplyRenderTargets(null);
+        }
+
+        public RasterizerState RasterizerState
+        {
+            get
+            {
+                return _rasterizerState;
+            }
+
+            set
+            {
+                if (value == null)
+                    throw new ArgumentNullException("value");
+
+                // Don't set the same state twice!
+                if (_rasterizerState == value)
+                    return;
+
+                if (!value.DepthClipEnable && !GraphicsCapabilities.SupportsDepthClamp)
+                    throw new InvalidOperationException("Cannot set RasterizerState.DepthClipEnable to false on this graphics device");
+
+                _rasterizerState = value;
+
+                // Static state properties never actually get bound;
+                // instead we use our GraphicsDevice-specific version of them.
+                var newRasterizerState = _rasterizerState;
+                if (ReferenceEquals(_rasterizerState, RasterizerState.CullClockwise))
+                    newRasterizerState = _rasterizerStateCullClockwise;
+                else if (ReferenceEquals(_rasterizerState, RasterizerState.CullCounterClockwise))
+                    newRasterizerState = _rasterizerStateCullCounterClockwise;
+                else if (ReferenceEquals(_rasterizerState, RasterizerState.CullNone))
+                    newRasterizerState = _rasterizerStateCullNone;
+
+                newRasterizerState.BindToGraphicsDevice(this);
+
+                _actualRasterizerState = newRasterizerState;
+
+                _rasterizerStateDirty = true;
+            }
+        }
+
+        /// <summary>
+        /// The color used as blend factor when alpha blending.
+        /// </summary>
+        /// <remarks>
+        /// When only changing BlendFactor, use this rather than <see cref="Graphics.BlendState.BlendFactor"/> to
+        /// only update BlendFactor so the whole BlendState does not have to be updated.
+        /// </remarks>
+        public Color BlendFactor
+        {
+            get { return _blendFactor; }
+            set
+            {
+                if (_blendFactor == value)
+                    return;
+                _blendFactor = value;
+                _blendFactorDirty = true;
+            }
         }
 
         public BlendState BlendState
         {
-            get { return _blendState; }
-            set
+			get { return _blendState; }
+			set
             {
-                // ToDo check for invalid state
-                _blendState = value;
+                if (value == null)
+                    throw new ArgumentNullException("value");
 
-                // Disable Blending by default = BlendState.Opaque
-#if IPHONE
-                if (OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-                if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-                if (false)
-#endif
-                {
-                    GL20.Disable(ALL20.Blend);
+                // Don't set the same state twice!
+                if (_blendState == value)
+                    return;
 
-                    // set the blend mode
-                    if (_blendState == BlendState.NonPremultiplied)
-                    {
-                        GL20.BlendFunc(ALL20.SrcAlpha, ALL20.OneMinusSrcAlpha);
-                        GL20.Enable(ALL20.Blend);
-                    }
+				_blendState = value;
 
-                    if (_blendState == BlendState.AlphaBlend)
-                    {
-                        GL20.BlendFunc(ALL20.One, ALL20.OneMinusSrcAlpha);
-                        GL20.Enable(ALL20.Blend);
-                    }
+                // Static state properties never actually get bound;
+                // instead we use our GraphicsDevice-specific version of them.
+                var newBlendState = _blendState;
+                if (ReferenceEquals(_blendState, BlendState.Additive))
+                    newBlendState = _blendStateAdditive;
+                else if (ReferenceEquals(_blendState, BlendState.AlphaBlend))
+                    newBlendState = _blendStateAlphaBlend;
+                else if (ReferenceEquals(_blendState, BlendState.NonPremultiplied))
+                    newBlendState = _blendStateNonPremultiplied;
+                else if (ReferenceEquals(_blendState, BlendState.Opaque))
+                    newBlendState = _blendStateOpaque;
 
-                    if (_blendState == BlendState.Additive)
-                    {
-                        GL20.BlendFunc(ALL20.SrcAlpha, ALL20.One);
-                        GL20.Enable(ALL20.Blend);
-                    }
-                }else
-                {
-                    GL11.Disable(ALL11.Blend);
+                if (newBlendState.IndependentBlendEnable && !GraphicsCapabilities.SupportsSeparateBlendStates)
+                    throw new PlatformNotSupportedException("Independent blend states requires at least OpenGL 4.0 or GL_ARB_draw_buffers_blend. Try upgrading your graphics drivers.");
 
-                    // set the blend mode
-                    if (_blendState == BlendState.NonPremultiplied)
-                    {
-                        GL11.BlendFunc(ALL11.SrcAlpha, ALL11.OneMinusSrcAlpha);
-                        GL11.Enable(ALL11.Blend);
-                    }
+                // Blend state is now bound to a device... no one should
+                // be changing the state of the blend state object now!
+                newBlendState.BindToGraphicsDevice(this);
 
-                    if (_blendState == BlendState.AlphaBlend)
-                    {
-                        GL11.BlendFunc(ALL11.One, ALL11.OneMinusSrcAlpha);
-                        GL11.Enable(ALL11.Blend);
-                    }
+                _actualBlendState = newBlendState;
 
-                    if (_blendState == BlendState.Additive)
-                    {
-                        GL11.BlendFunc(ALL11.SrcAlpha, ALL11.One);
-                        GL11.Enable(ALL11.Blend);
-                    }
-                }
+                BlendFactor = _actualBlendState.BlendFactor;
+
+                _blendStateDirty = true;
             }
-        }
+		}
 
         public DepthStencilState DepthStencilState
         {
             get { return _depthStencilState; }
             set
             {
+                if (value == null)
+                    throw new ArgumentNullException("value");
+
+                // Don't set the same state twice!
+                if (_depthStencilState == value)
+                    return;
+
                 _depthStencilState = value;
+
+                // Static state properties never actually get bound;
+                // instead we use our GraphicsDevice-specific version of them.
+                var newDepthStencilState = _depthStencilState;
+                if (ReferenceEquals(_depthStencilState, DepthStencilState.Default))
+                    newDepthStencilState = _depthStencilStateDefault;
+                else if (ReferenceEquals(_depthStencilState, DepthStencilState.DepthRead))
+                    newDepthStencilState = _depthStencilStateDepthRead;
+                else if (ReferenceEquals(_depthStencilState, DepthStencilState.None))
+                    newDepthStencilState = _depthStencilStateNone;
+
+                newDepthStencilState.BindToGraphicsDevice(this);
+
+                _actualDepthStencilState = newDepthStencilState;
+
+                _depthStencilStateDirty = true;
             }
         }
 
-        public SamplerStateCollection SamplerStates
+        internal void ApplyState(bool applyShaders)
         {
-            get
+            PlatformBeginApplyState();
+
+            PlatformApplyBlend();
+
+            if (_depthStencilStateDirty)
             {
-                //var temp = _samplerStates;
-                return _samplerStates;
+                _actualDepthStencilState.PlatformApplyState(this);
+                _depthStencilStateDirty = false;
             }
+
+            if (_rasterizerStateDirty)
+            {
+                _actualRasterizerState.PlatformApplyState(this);
+                _rasterizerStateDirty = false;
+            }
+
+            PlatformApplyState(applyShaders);
         }
+
         public void Clear(Color color)
         {
-            Vector4 vector = color.ToVector4();
+            var options = ClearOptions.Target;
+            options |= ClearOptions.DepthBuffer;
+            options |= ClearOptions.Stencil;
+            PlatformClear(options, color.ToVector4(), _viewport.MaxDepth, 0);
 
-#if IPHONE
-            if (OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
+            unchecked
             {
-                GL20.ClearColor(vector.X, vector.Y, vector.Z, vector.W);
-                GL20.Clear((uint)ALL20.ColorBufferBit);
-            }
-            else
-            {
-                GL11.ClearColor(vector.X, vector.Y, vector.Z, vector.W);
-                GL11.Clear((uint)ALL11.ColorBufferBit);
+                _graphicsMetrics._clearCount++;
             }
         }
 
         public void Clear(ClearOptions options, Color color, float depth, int stencil)
         {
-            Clear(options, color.ToVector4(), depth, stencil);
-        }
+            PlatformClear(options, color.ToVector4(), depth, stencil);
 
-        public void Clear(ClearOptions options, Vector4 color, float depth, int stencil)
-        {
-            uint mask = 0;
-
-#if IPHONE
-            if (OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
+            unchecked
             {
-                if (color.X != 0f || color.Y != 0f || color.Z != 0f || color.W != 0f)
-                {
-                    GL20.ClearColor(color.X, color.Y, color.Z, color.W);
-                    mask = (uint)ALL20.ColorBufferBit | mask;
-                }
-
-                GL20.ClearDepth(depth);
-                mask = (uint)ALL20.DepthBufferBit | mask;
-
-                GL20.ClearStencil(stencil);
-                mask = (uint)ALL20.StencilBufferBit | mask;
-
-                GL20.Clear(mask);
-            }
-            else
-            {
-                if (color.X != 0f || color.Y != 0f || color.Z != 0f || color.W != 0f)
-                {
-                    GL11.ClearColor(color.X, color.Y, color.Z, color.W);
-                    mask = (uint)ALL11.ColorBufferBit | mask;
-                }
-
-                GL11.ClearDepth(depth);
-                mask = (uint)ALL11.DepthBufferBit | mask;
-
-                GL11.ClearStencil(stencil);
-                mask = (uint)ALL11.StencilBufferBit | mask;
-
-                GL11.Clear(mask);
+                _graphicsMetrics._clearCount++;
             }
         }
 
-        public void Clear(ClearOptions options, Color color, float depth, int stencil, Rectangle[] regions)
-        {
-            throw new NotImplementedException();
-        }
+		public void Clear(ClearOptions options, Vector4 color, float depth, int stencil)
+		{
+            PlatformClear(options, color, depth, stencil);
 
-        public void Clear(ClearOptions options, Vector4 color, float depth, int stencil, Rectangle[] regions)
-        {
-            throw new NotImplementedException();
+            unchecked
+            {
+                _graphicsMetrics._clearCount++;
+            }
         }
 
         public void Dispose()
         {
-            _isDisposed = true;
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        protected virtual void Dispose(bool aReleaseEverything)
+        protected virtual void Dispose(bool disposing)
         {
-            if (aReleaseEverything)
+            if (!_isDisposed)
             {
+                if (disposing)
+                {
+                    // Dispose of all remaining graphics resources before disposing of the graphics device
+                    lock (_resourcesLock)
+                    {
+                        foreach (var resource in _resources.ToArray())
+                        {
+                            var target = resource.Target as IDisposable;
+                            if (target != null)
+                                target.Dispose();
+                        }
+                        _resources.Clear();
+                    }
 
+                    // Clear the effect cache.
+                    EffectCache.Clear();
+
+                    _blendState = null;
+                    _actualBlendState = null;
+                    _blendStateAdditive.Dispose();
+                    _blendStateAlphaBlend.Dispose();
+                    _blendStateNonPremultiplied.Dispose();
+                    _blendStateOpaque.Dispose();
+
+                    _depthStencilState = null;
+                    _actualDepthStencilState = null;
+                    _depthStencilStateDefault.Dispose();
+                    _depthStencilStateDepthRead.Dispose();
+                    _depthStencilStateNone.Dispose();
+
+                    _rasterizerState = null;
+                    _actualRasterizerState = null;
+                    _rasterizerStateCullClockwise.Dispose();
+                    _rasterizerStateCullCounterClockwise.Dispose();
+                    _rasterizerStateCullNone.Dispose();
+
+                    PlatformDispose();
+                }
+
+                _isDisposed = true;
+                EventHelpers.Raise(this, Disposing, EventArgs.Empty);
             }
+        }
 
-            _isDisposed = true;
+        internal void AddResourceReference(WeakReference resourceReference)
+        {
+            lock (_resourcesLock)
+            {
+                _resources.Add(resourceReference);
+            }
+        }
+
+        internal void RemoveResourceReference(WeakReference resourceReference)
+        {
+            lock (_resourcesLock)
+            {
+                _resources.Remove(resourceReference);
+            }
         }
 
         public void Present()
         {
-#if ANDROID
-            _platform.Present();
-#else
-#if IPHONE
-            if (OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                GL20.Flush();
-            else
-                GL11.Flush();
-#endif
+            // We cannot present with a RT set on the device.
+            if (_currentRenderTargetCount != 0)
+                throw new InvalidOperationException("Cannot call Present when a render target is active.");
+
+            _graphicsMetrics = new GraphicsMetrics();
+            PlatformPresent();
         }
 
+        /*
         public void Present(Rectangle? sourceRectangle, Rectangle? destinationRectangle, IntPtr overrideWindowHandle)
         {
             throw new NotImplementedException();
         }
+        */
+
+        partial void PlatformReset();
 
         public void Reset()
         {
+            PlatformReset();
 
-            if (ResourcesLost)
+            EventHelpers.Raise(this, DeviceResetting, EventArgs.Empty);
+
+            // Update the back buffer.
+            OnPresentationChanged();
+            
+            EventHelpers.Raise(this, PresentationChanged, new PresentationEventArgs(PresentationParameters));
+            EventHelpers.Raise(this, DeviceReset, EventArgs.Empty);
+       }
+
+        public void Reset(PresentationParameters presentationParameters)
+        {
+            if (presentationParameters == null)
+                throw new ArgumentNullException("presentationParameters");
+
+            PresentationParameters = presentationParameters;
+            Reset();
+        }
+
+        /// <summary>
+        /// Trigger the DeviceResetting event
+        /// Currently internal to allow the various platforms to send the event at the appropriate time.
+        /// </summary>
+        internal void OnDeviceResetting()
+        {
+            EventHelpers.Raise(this, DeviceResetting, EventArgs.Empty);
+
+            lock (_resourcesLock)
             {
-                ContentManager.ReloadAllContent();
-                ResourcesLost = false;
+                foreach (var resource in _resources)
+                {
+                    var target = resource.Target as GraphicsResource;
+                    if (target != null)
+                        target.GraphicsDeviceResetting();
+                }
+
+                // Remove references to resources that have been garbage collected.
+                _resources.RemoveAll(wr => !wr.IsAlive);
             }
-
-            if(DeviceReset != null)
-                DeviceReset(null, new EventArgs());
         }
 
-        public void Reset(Microsoft.Xna.Framework.Graphics.PresentationParameters presentationParameters)
+        /// <summary>
+        /// Trigger the DeviceReset event to allow games to be notified of a device reset.
+        /// Currently internal to allow the various platforms to send the event at the appropriate time.
+        /// </summary>
+        internal void OnDeviceReset()
         {
-            throw new NotImplementedException();
+            EventHelpers.Raise(this, DeviceReset, EventArgs.Empty);
         }
 
-        public void Reset(Microsoft.Xna.Framework.Graphics.PresentationParameters presentationParameters, GraphicsAdapter graphicsAdapter)
-        {
-            throw new NotImplementedException();
-        }
-
-        public Microsoft.Xna.Framework.Graphics.DisplayMode DisplayMode
+        public DisplayMode DisplayMode
         {
             get
             {
-                return GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
+                return Adapter.CurrentDisplayMode;
             }
         }
 
-        public Microsoft.Xna.Framework.Graphics.GraphicsDeviceCapabilities GraphicsDeviceCapabilities
+        public GraphicsDeviceStatus GraphicsDeviceStatus
         {
             get
             {
-                throw new NotImplementedException();
+                return GraphicsDeviceStatus.Normal;
             }
         }
 
-        public Microsoft.Xna.Framework.Graphics.GraphicsDeviceStatus GraphicsDeviceStatus
-        {
-            get
-            {
-                throw new NotImplementedException();
-            }
-        }
-
-        public Microsoft.Xna.Framework.Graphics.PresentationParameters PresentationParameters
+        public PresentationParameters PresentationParameters
         {
             get;
-            set;
+            private set;
         }
 
-        public Microsoft.Xna.Framework.Graphics.Viewport Viewport
+        public Viewport Viewport
         {
             get
             {
                 return _viewport;
             }
+
             set
             {
                 _viewport = value;
+                PlatformSetViewport(ref value);
             }
         }
 
-        public Microsoft.Xna.Framework.Graphics.GraphicsProfile GraphicsProfile
+        private readonly GraphicsProfile _graphicsProfile;
+        public GraphicsProfile GraphicsProfile
         {
-            get;
-            set;
+            get { return _graphicsProfile; }
         }
 
-        public VertexDeclaration VertexDeclaration
-        {
-            get;
-            set;
-        }
-
-        Rectangle _scissorRectangle;
         public Rectangle ScissorRectangle
         {
             get
             {
                 return _scissorRectangle;
             }
+
             set
             {
+                if (_scissorRectangle == value)
+                    return;
+
                 _scissorRectangle = value;
-				
-				_scissorRectangle.Y = _viewport.Height - _scissorRectangle.Y - _scissorRectangle.Height;
+                _scissorRectangleDirty = true;
             }
         }
 
-        public void SetRenderTarget(RenderTarget2D renderTarget)
+        public int RenderTargetCount
         {
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                SetRenderTargetGL20(renderTarget);
-			else
-				SetRenderTargetGL11(renderTarget);
-        }
-
-        public void SetRenderTargetGL20(RenderTarget2D rendertarget)
-        {
-            if (rendertarget == null)
+            get
             {
-                GL20.BindFramebuffer(ALL20.Framebuffer, FrameBufferScreen);
-				
-				// restore the saved Viewport
-                Viewport = savedViewport;
-				
-                DefaultFrameBuffer = true;
-            }
-            else
-            {
-                GL20.BindFramebuffer(ALL20.Framebuffer, rendertarget.frameBuffer);
-                GL20.FramebufferTexture2D(ALL20.Framebuffer, ALL20.ColorAttachment0, ALL20.Texture2D, rendertarget.ID, 0);
-
-                ALL20 status = GL20.CheckFramebufferStatus(ALL20.Framebuffer);
-                if (status != ALL20.FramebufferComplete)
-                    throw new Exception("GL20: Error creating framebuffer: " + status);
-				
-				// Save off the current viewport to be reset later
-                    savedViewport = Viewport;
-
-                    // Create a new Viewport
-                    Viewport renderTargetViewPort = new Viewport();
-
-                    // Set the new viewport to the width and height of the render target
-                    Texture2D target2 = (Texture2D) rendertarget;
-                    renderTargetViewPort.Width = target2.Width;
-                    renderTargetViewPort.Height = target2.Height;
-
-                    // now we set our viewport to the new rendertarget viewport just created.
-                    Viewport = renderTargetViewPort;
-				
-                DefaultFrameBuffer = false;
+                return _currentRenderTargetCount;
             }
         }
 
-        public void SetRenderTargetGL11(RenderTarget2D renderTarget)
-        {
-            // We check if the rendertarget being passed is null or if we already have a rendertarget
-            // NetRumble sample does not set the the renderTarget to null before setting another
-            // rendertarget.  We handle that by checking first if we have a current render target set
-            // if we do then we unbind the current rendertarget, reset the viewport and set the
-            // rendertarget to the new one being passed if it is not null
-            if (renderTarget == null || currentRenderTargets != null)
-            {
-#if ANDROID					
-				try
-				{
-					// This is a work around for android gl1.1
-                  byte[] imageInfo = new byte[4];
-                  GL11.ReadPixels(0, 0, 1, 1, ALL11.Rgba, ALL11.UnsignedByte, imageInfo);
-				}
-				catch
-				{ 
-				}
-#endif
-                // Detach the render buffers.
-                GL11.Oes.FramebufferRenderbuffer(ALL11.FramebufferOes, ALL11.DepthAttachmentOes,
-                        ALL11.RenderbufferOes, 0);
-
-                // delete the RBO's
-                GL11.Oes.DeleteRenderbuffers(renderBufferIDs.Length, renderBufferIDs);
-
-                // delete the FBO
-                GL11.Oes.DeleteFramebuffers(frameBufferIDs.Length, frameBufferIDs);
-
-                // Set the frame buffer back to the system window buffer
-                GL11.Oes.BindFramebuffer(ALL11.FramebufferOes, originalFbo);
-
-                // We need to reset our GraphicsDevice viewport back to what it was
-                // before rendering.
-                Viewport = savedViewport;
-
-                if (renderTarget == null)
-                    currentRenderTargets = null;
-                else
-                {
-                    SetRenderTargets(new RenderTargetBinding(renderTarget));
-                }
-            }
-            else
-            {
-                SetRenderTargets(new RenderTargetBinding(renderTarget));
-            }
-        }
-
-        int[] frameBufferIDs;
-        int[] renderBufferIDs;
-        int originalFbo = -1;
-
-        // TODO: We need to come up with a state save and restore of the GraphicsDevice
-        //  This would probably work with a Stack that allows pushing and popping of the current
-        //  Graphics device state.
-        //  Right now here is the list of state values that should be implemented
-        //  Viewport - Used for RenderTargets
-        //  Depth and Stencil formats	- To be determined
-        Viewport savedViewport;
-
-        public void SetRenderTargets(params RenderTargetBinding[] renderTargets)
-        {
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-            {
-                throw new NotImplementedException();
-            }
-            else
-            {
-                currentRenderTargets = renderTargets;
-
-                if (currentRenderTargets != null)
-                {
-                    // TODO: For speed we need to consider using FBO switching instead
-                    // of multiple FBO's if they are the same size.
-
-                    // http://www.songho.ca/opengl/gl_fbo.html
-
-                    // Get the currently bound frame buffer object. On most platforms this just gives 0.				
-                    GL11.GetInteger(ALL11.FramebufferBindingOes, ref originalFbo);
-
-                    frameBufferIDs = new int[currentRenderTargets.Length];
-
-                    renderBufferIDs = new int[currentRenderTargets.Length];
-                    GL11.Oes.GenRenderbuffers(currentRenderTargets.Length, renderBufferIDs);
-
-                    for (int i = 0; i < currentRenderTargets.Length; i++)
-                    {
-                        RenderTarget2D target = (RenderTarget2D) currentRenderTargets[i].RenderTarget;
-
-                        // create a renderbuffer object to store depth info
-                        GL11.Oes.BindRenderbuffer(ALL11.RenderbufferOes, renderBufferIDs[i]);
-
-                        ClearOptions clearOptions = ClearOptions.Target | ClearOptions.DepthBuffer;
-
-                        switch (target.DepthStencilFormat)
-                        {
-                            case DepthFormat.Depth16:
-                                GL11.Oes.RenderbufferStorage(ALL11.RenderbufferOes, ALL11.DepthComponent16Oes,
-                                                             target.Width, target.Height);
-                                break;
-                            case DepthFormat.Depth24:
-                                GL11.Oes.RenderbufferStorage(ALL11.RenderbufferOes, ALL11.DepthComponent24Oes,
-                                                             target.Width, target.Height);
-                                break;
-                            case DepthFormat.Depth24Stencil8:
-                                GL11.Oes.RenderbufferStorage(ALL11.RenderbufferOes, ALL11.Depth24Stencil8Oes,
-                                                             target.Width, target.Height);
-                                GL11.Oes.FramebufferRenderbuffer(ALL11.FramebufferOes, ALL11.StencilAttachmentOes,
-                                                                 ALL11.RenderbufferOes, renderBufferIDs[i]);
-                                clearOptions = clearOptions | ClearOptions.Stencil;
-                                break;
-                            default:
-                                GL11.Oes.RenderbufferStorage(ALL11.RenderbufferOes, ALL11.DepthComponent24Oes,
-                                                             target.Width, target.Height);
-                                break;
-                        }
-
-                        // create framebuffer
-                        GL11.Oes.GenFramebuffers(1, ref frameBufferIDs[i]);
-                        GL11.Oes.BindFramebuffer(ALL11.FramebufferOes, frameBufferIDs[i]);
-
-                        // attach the texture to FBO color attachment point
-                        GL11.Oes.FramebufferTexture2D(ALL11.FramebufferOes, ALL11.ColorAttachment0Oes, ALL11.Texture2D,
-                                                      target.ID, 0);
-
-                        // attach the renderbuffer to depth attachment point
-                        GL11.Oes.FramebufferRenderbuffer(ALL11.FramebufferOes, ALL11.DepthAttachmentOes,
-                                                         ALL11.RenderbufferOes, renderBufferIDs[i]);
-
-                        if (target.RenderTargetUsage == RenderTargetUsage.DiscardContents)
-                            Clear(clearOptions, Color.Transparent, 0, 0);
-
-                       // GL11.Oes.BindRenderbuffer(ALL11.FramebufferOes, originalFbo);
-
-                    }
-
-                    ALL11 status = GL11.Oes.CheckFramebufferStatus(ALL11.FramebufferOes);
-
-                    if (status != ALL11.FramebufferCompleteOes)
-                        throw new Exception("Error creating framebuffer: " + status);
-
-                    // We need to start saving off the ViewPort and setting the current ViewPort to
-                    // the width and height of the texture.  Then when we pop off the rendertarget
-                    // it needs to be reset.  This causes drawing problems if we do not set the viewport.
-                    // Makes sense once you follow the flow (hits head on desk)
-                    // For an example of this take a look at NetRumble's sample for the BloomPostprocess
-
-                    // Save off the current viewport to be reset later
-                    savedViewport = Viewport;
-
-                    // Create a new Viewport
-                    Viewport renderTargetViewPort = new Viewport();
-
-                    // Set the new viewport to the width and height of the render target
-                    Texture2D target2 = (Texture2D) currentRenderTargets[0].RenderTarget;
-                    renderTargetViewPort.Width = target2.Width;
-                    renderTargetViewPort.Height = target2.Height;
-
-                    // now we set our viewport to the new rendertarget viewport just created.
-                    Viewport = renderTargetViewPort;
-                }
-            }
-        }
-
-		public RenderTargetBinding[] GetRenderTargets ()
+		public void SetRenderTarget(RenderTarget2D renderTarget)
 		{
-			return currentRenderTargets;
+			if (renderTarget == null)
+		    {
+                SetRenderTargets(null);
+		    }
+			else
+			{
+				_tempRenderTargetBinding[0] = new RenderTargetBinding(renderTarget);
+				SetRenderTargets(_tempRenderTargetBinding);
+			}
 		}
-		
-        public void ResolveBackBuffer(ResolveTexture2D resolveTexture)
+
+        public void SetRenderTarget(RenderTargetCube renderTarget, CubeMapFace cubeMapFace)
         {
+            if (renderTarget == null)
+            {
+                SetRenderTargets(null);
+            }
+            else
+            {
+                _tempRenderTargetBinding[0] = new RenderTargetBinding(renderTarget, cubeMapFace);
+                SetRenderTargets(_tempRenderTargetBinding);
+            }
         }
 
-        internal ALL11 PrimitiveTypeGL11(PrimitiveType primitiveType)
-        {
-            switch (primitiveType)
+		public void SetRenderTargets(params RenderTargetBinding[] renderTargets)
+		{
+            // Avoid having to check for null and zero length.
+            var renderTargetCount = 0;
+            if (renderTargets != null)
             {
-                case PrimitiveType.LineList:
-                    return ALL11.Lines;
-                case PrimitiveType.LineStrip:
-                    return ALL11.LineStrip;
-                case PrimitiveType.TriangleList:
-                    return ALL11.Triangles;
-                case PrimitiveType.TriangleStrip:
-                    return ALL11.TriangleStrip;
+                renderTargetCount = renderTargets.Length;
+                if (renderTargetCount == 0)
+                {
+                    renderTargets = null;
+                }
             }
 
-            throw new NotImplementedException();
+            // Try to early out if the current and new bindings are equal.
+            if (_currentRenderTargetCount == renderTargetCount)
+            {
+                var isEqual = true;
+                for (var i = 0; i < _currentRenderTargetCount; i++)
+                {
+                    if (_currentRenderTargetBindings[i].RenderTarget != renderTargets[i].RenderTarget ||
+                        _currentRenderTargetBindings[i].ArraySlice != renderTargets[i].ArraySlice)
+                    {
+                        isEqual = false;
+                        break;
+                    }
+                }
+
+                if (isEqual)
+                    return;
+            }
+
+            ApplyRenderTargets(renderTargets);
+
+            if (renderTargetCount == 0)
+            {
+                unchecked
+                {
+                    _graphicsMetrics._targetCount++;
+                }
+            }
+            else
+            {
+                unchecked
+                {
+                    _graphicsMetrics._targetCount += renderTargetCount;
+                }
+            }
         }
 
-        internal ALL20 PrimitiveTypeGL20(PrimitiveType primitiveType)
+        internal void ApplyRenderTargets(RenderTargetBinding[] renderTargets)
         {
-            switch (primitiveType)
+            var clearTarget = false;
+
+            PlatformResolveRenderTargets();
+
+            // Clear the current bindings.
+            Array.Clear(_currentRenderTargetBindings, 0, _currentRenderTargetBindings.Length);
+
+            int renderTargetWidth;
+            int renderTargetHeight;
+            if (renderTargets == null)
             {
-                case PrimitiveType.LineList:
-                    return ALL20.Lines;
-                case PrimitiveType.LineStrip:
-                    return ALL20.LineStrip;
-                case PrimitiveType.TriangleList:
-                    return ALL20.Triangles;
-                case PrimitiveType.TriangleStrip:
-                    return ALL20.TriangleStrip;
+                _currentRenderTargetCount = 0;
+
+                PlatformApplyDefaultRenderTarget();
+                clearTarget = PresentationParameters.RenderTargetUsage == RenderTargetUsage.DiscardContents;
+
+                renderTargetWidth = PresentationParameters.BackBufferWidth;
+                renderTargetHeight = PresentationParameters.BackBufferHeight;
+            }
+			else
+			{
+                // Copy the new bindings.
+                Array.Copy(renderTargets, _currentRenderTargetBindings, renderTargets.Length);
+                _currentRenderTargetCount = renderTargets.Length;
+
+                var renderTarget = PlatformApplyRenderTargets();
+
+                // We clear the render target if asked.
+                clearTarget = renderTarget.RenderTargetUsage == RenderTargetUsage.DiscardContents;
+
+                renderTargetWidth = renderTarget.Width;
+                renderTargetHeight = renderTarget.Height;
             }
 
-            throw new NotImplementedException();
+            // Set the viewport to the size of the first render target.
+            Viewport = new Viewport(0, 0, renderTargetWidth, renderTargetHeight);
+
+            // Set the scissor rectangle to the size of the first render target.
+            ScissorRectangle = new Rectangle(0, 0, renderTargetWidth, renderTargetHeight);
+
+            // In XNA 4, because of hardware limitations on Xbox, when
+            // a render target doesn't have PreserveContents as its usage
+            // it is cleared before being rendered to.
+            if (clearTarget)
+                Clear(DiscardColor);
+        }
+
+		public RenderTargetBinding[] GetRenderTargets()
+		{
+            // Return a correctly sized copy our internal array.
+            var bindings = new RenderTargetBinding[_currentRenderTargetCount];
+            Array.Copy(_currentRenderTargetBindings, bindings, _currentRenderTargetCount);
+            return bindings;
+		}
+
+        public void GetRenderTargets(RenderTargetBinding[] outTargets)
+        {
+            Debug.Assert(outTargets.Length == _currentRenderTargetCount, "Invalid outTargets array length!");
+            Array.Copy(_currentRenderTargetBindings, outTargets, _currentRenderTargetCount);
         }
 
         public void SetVertexBuffer(VertexBuffer vertexBuffer)
         {
-            _vertexBuffer = vertexBuffer;
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                GL20.BindBuffer(ALL20.ArrayBuffer, vertexBuffer._bufferStore);
+            _vertexBuffersDirty |= (vertexBuffer == null)
+                                   ? _vertexBuffers.Clear()
+                                   : _vertexBuffers.Set(vertexBuffer, 0);
+        }
+
+        public void SetVertexBuffer(VertexBuffer vertexBuffer, int vertexOffset)
+        {
+            // Validate vertexOffset.
+            if (vertexOffset < 0
+                || vertexBuffer == null && vertexOffset != 0
+                || vertexBuffer != null && vertexOffset >= vertexBuffer.VertexCount)
+            {
+                throw new ArgumentOutOfRangeException("vertexOffset");
+            }
+
+            _vertexBuffersDirty |= (vertexBuffer == null)
+                                   ? _vertexBuffers.Clear()
+                                   : _vertexBuffers.Set(vertexBuffer, vertexOffset);
+        }
+
+        public void SetVertexBuffers(params VertexBufferBinding[] vertexBuffers)
+        {
+            if (vertexBuffers == null || vertexBuffers.Length == 0)
+            {
+                _vertexBuffersDirty |= _vertexBuffers.Clear();
+            }
             else
-                GL11.BindBuffer(ALL11.ArrayBuffer, vertexBuffer._bufferStore);
+            {
+                if (vertexBuffers.Length > _maxVertexBufferSlots)
+                {
+                    var message = string.Format(CultureInfo.InvariantCulture, "Max number of vertex buffers is {0}.", _maxVertexBufferSlots);
+                    throw new ArgumentOutOfRangeException("vertexBuffers", message);
+                }
+
+                _vertexBuffersDirty |= _vertexBuffers.Set(vertexBuffers);
+            }
         }
 
         private void SetIndexBuffer(IndexBuffer indexBuffer)
         {
+            if (_indexBuffer == indexBuffer)
+                return;
+
             _indexBuffer = indexBuffer;
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, indexBuffer._bufferStore);
-            else
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, indexBuffer._bufferStore);
+            _indexBufferDirty = true;
         }
 
-        public IndexBuffer Indices { set { SetIndexBuffer(value); } }
+        public IndexBuffer Indices { set { SetIndexBuffer(value); } get { return _indexBuffer; } }
+
+        internal Shader VertexShader
+        {
+            get { return _vertexShader; }
+
+            set
+            {
+                if (_vertexShader == value)
+                    return;
+
+                _vertexShader = value;
+                _vertexConstantBuffers.Clear();
+                _vertexShaderDirty = true;
+            }
+        }
+
+        internal Shader PixelShader
+        {
+            get { return _pixelShader; }
+
+            set
+            {
+                if (_pixelShader == value)
+                    return;
+
+                _pixelShader = value;
+                _pixelConstantBuffers.Clear();
+                _pixelShaderDirty = true;
+            }
+        }
+
+        internal void SetConstantBuffer(ShaderStage stage, int slot, ConstantBuffer buffer)
+        {
+            if (stage == ShaderStage.Vertex)
+                _vertexConstantBuffers[slot] = buffer;
+            else
+                _pixelConstantBuffers[slot] = buffer;
+        }
 
         public bool ResourcesLost { get; set; }
 
-        public void DrawIndexedPrimitives(PrimitiveType primitiveType, int baseVertex, int minVertexIndex, int numbVertices, int startIndex, int primitiveCount)
+        /// <summary>
+        /// Draw geometry by indexing into the vertex buffer.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives in the index buffer.</param>
+        /// <param name="baseVertex">Used to offset the vertex range indexed from the vertex buffer.</param>
+        /// <param name="minVertexIndex">This is unused and remains here only for XNA API compatibility.</param>
+        /// <param name="numVertices">This is unused and remains here only for XNA API compatibility.</param>
+        /// <param name="startIndex">The index within the index buffer to start drawing from.</param>
+        /// <param name="primitiveCount">The number of primitives to render from the index buffer.</param>
+        /// <remarks>Note that minVertexIndex and numVertices are unused in MonoGame and will be ignored.</remarks>
+        [Obsolete("Use DrawIndexedPrimitives(PrimitiveType primitiveType, int baseVertex, int startIndex, int primitiveCount) instead. In future versions this method can be removed.")]
+        public void DrawIndexedPrimitives(PrimitiveType primitiveType, int baseVertex, int minVertexIndex, int numVertices, int startIndex, int primitiveCount)
         {
-            if (minVertexIndex > 0 || baseVertex > 0)
-                throw new NotImplementedException("baseVertex > 0 and minVertexIndex > 0 are not supported");
-
-            var vd = VertexDeclaration.FromType(_vertexBuffer._type);
-            // Hmm, can the pointer here be changed with baseVertex?
-            VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                GL20.DrawElements(PrimitiveTypeGL20(primitiveType), _indexBuffer._count, ALL20.UnsignedShort, new IntPtr(startIndex));
-            else
-                GL11.DrawElements(PrimitiveTypeGL11(primitiveType), _indexBuffer._count, ALL11.UnsignedShort, new IntPtr(startIndex));
+            DrawIndexedPrimitives(primitiveType, baseVertex, startIndex, primitiveCount);
         }
 
+        /// <summary>
+        /// Draw geometry by indexing into the vertex buffer.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives in the index buffer.</param>
+        /// <param name="baseVertex">Used to offset the vertex range indexed from the vertex buffer.</param>
+        /// <param name="startIndex">The index within the index buffer to start drawing from.</param>
+        /// <param name="primitiveCount">The number of primitives to render from the index buffer.</param>
+        public void DrawIndexedPrimitives(PrimitiveType primitiveType, int baseVertex, int startIndex, int primitiveCount)
+        {
+            if (_vertexShader == null)
+                throw new InvalidOperationException("Vertex shader must be set before calling DrawIndexedPrimitives.");
+
+            if (_vertexBuffers.Count == 0)
+                throw new InvalidOperationException("Vertex buffer must be set before calling DrawIndexedPrimitives.");
+
+            if (_indexBuffer == null)
+                throw new InvalidOperationException("Index buffer must be set before calling DrawIndexedPrimitives.");
+
+            if (primitiveCount <= 0)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            PlatformDrawIndexedPrimitives(primitiveType, baseVertex, startIndex, primitiveCount);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+                _graphicsMetrics._primitiveCount += primitiveCount;
+            }
+        }
+
+        /// <summary>
+        /// Draw primitives of the specified type from the data in an array of vertices without indexing.
+        /// </summary>
+        /// <typeparam name="T">The type of the vertices.</typeparam>
+        /// <param name="primitiveType">The type of primitives to draw with the vertices.</param>
+        /// <param name="vertexData">An array of vertices to draw.</param>
+        /// <param name="vertexOffset">The index in the array of the first vertex that should be rendered.</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
+        /// <remarks>The <see cref="VertexDeclaration"/> will be found by getting <see cref="IVertexType.VertexDeclaration"/>
+        /// from an instance of <typeparamref name="T"/> and cached for subsequent calls.</remarks>
         public void DrawUserPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int primitiveCount) where T : struct, IVertexType
         {
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
+            DrawUserPrimitives(primitiveType, vertexData, vertexOffset, primitiveCount, VertexDeclarationCache<T>.VertexDeclaration);
+        }
+
+        /// <summary>
+        /// Draw primitives of the specified type from the data in the given array of vertices without indexing.
+        /// </summary>
+        /// <typeparam name="T">The type of the vertices.</typeparam>
+        /// <param name="primitiveType">The type of primitives to draw with the vertices.</param>
+        /// <param name="vertexData">An array of vertices to draw.</param>
+        /// <param name="vertexOffset">The index in the array of the first vertex that should be rendered.</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
+        /// <param name="vertexDeclaration">The layout of the vertices.</param>
+        public void DrawUserPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int primitiveCount, VertexDeclaration vertexDeclaration) where T : struct
+        {
+            if (vertexData == null)
+                throw new ArgumentNullException("vertexData");
+
+            if (vertexData.Length == 0)
+                throw new ArgumentOutOfRangeException("vertexData");
+
+            if (vertexOffset < 0 || vertexOffset >= vertexData.Length)
+                throw new ArgumentOutOfRangeException("vertexOffset");
+
+            if (primitiveCount <= 0)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            var vertexCount = GetElementCountArray(primitiveType, primitiveCount);
+
+            if (vertexOffset + vertexCount > vertexData.Length)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            if (vertexDeclaration == null)
+                throw new ArgumentNullException("vertexDeclaration");
+
+            PlatformDrawUserPrimitives<T>(primitiveType, vertexData, vertexOffset, vertexDeclaration, vertexCount);
+
+            unchecked
             {
-                // Unbind the VBOs
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL20.GenBuffers(1, ref VboIdArray);
-
-                // Bind the VBO
-                GL20.BindBuffer(ALL20.ArrayBuffer, VboIdArray);
-                ////Clear previous data
-                GL20.BufferData(ALL20.ArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof (T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL20.BufferData(ALL20.ArrayBuffer,
-                                (IntPtr)(vd.VertexStride * GetElementCountArray(primitiveType, primitiveCount) + vertexOffset * vd.VertexStride),
-                                vertexData, ALL20.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL20.DrawArrays(PrimitiveTypeGL20(primitiveType), vertexOffset,
-                                GetElementCountArray(primitiveType, primitiveCount));
-
-
-                // Free resources
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-                handle.Free();
-            }else
-            {
-                // Unbind the VBOs
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                //if (VboIdArrays == null)
-                //{
-                //    GenerateVBOs();
-                //}
-
-                // Bind the VBO
-                //GL11.BindBuffer(ALL11.ArrayBuffer, VboIdArrays[_currentArray]);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof(T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                //GL11.BufferData(ALL11.ArrayBuffer,
-                //                (IntPtr)(vd.VertexStride * GetElementCountArray(primitiveType, primitiveCount) + vertexOffset * vd.VertexStride),
-                //                vertexData, ALL11.DynamicDraw);
-                
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, handle.AddrOfPinnedObject());
-
-                //Draw
-                GL11.DrawArrays(PrimitiveTypeGL11(primitiveType), vertexOffset,
-                                GetElementCountArray(primitiveType, primitiveCount));
-
-                GL11.Flush();
-
-                handle.Free();
-
-                // Free resources
-                //GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-
-                //MoveToNextVBO();
+                _graphicsMetrics._drawCount++;
+                _graphicsMetrics._primitiveCount += primitiveCount;
             }
         }
 
+        /// <summary>
+        /// Draw primitives of the specified type from the currently bound vertexbuffers without indexing.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives to draw.</param>
+        /// <param name="vertexStart">Index of the vertex to start at.</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
         public void DrawPrimitives(PrimitiveType primitiveType, int vertexStart, int primitiveCount)
         {
-            var vd = VertexDeclaration.FromType(_vertexBuffer._type);
-            VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
+            if (_vertexShader == null)
+                throw new InvalidOperationException("Vertex shader must be set before calling DrawPrimitives.");
 
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-                GL20.DrawArrays(PrimitiveTypeGL20(primitiveType), vertexStart, GetElementCountArray(primitiveType, primitiveCount));
+            if (_vertexBuffers.Count == 0)
+                throw new InvalidOperationException("Vertex buffer must be set before calling DrawPrimitives.");
+
+            if (primitiveCount <= 0)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            var vertexCount = GetElementCountArray(primitiveType, primitiveCount);
+
+            PlatformDrawPrimitives(primitiveType, vertexStart, vertexCount);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+                _graphicsMetrics._primitiveCount +=  primitiveCount;
+            }
+        }
+
+        /// <summary>
+        /// Draw primitives of the specified type by indexing into the given array of vertices with 16-bit indices.
+        /// </summary>
+        /// <typeparam name="T">The type of the vertices.</typeparam>
+        /// <param name="primitiveType">The type of primitives to draw with the vertices.</param>
+        /// <param name="vertexData">An array of vertices to draw.</param>
+        /// <param name="vertexOffset">The index in the array of the first vertex to draw.</param>
+        /// <param name="indexOffset">The index in the array of indices of the first index to use</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
+        /// <param name="numVertices">The number of vertices to draw.</param>
+        /// <param name="indexData">The index data.</param>
+        /// <remarks>The <see cref="VertexDeclaration"/> will be found by getting <see cref="IVertexType.VertexDeclaration"/>
+        /// from an instance of <typeparamref name="T"/> and cached for subsequent calls.</remarks>
+        /// <remarks>All indices in the vertex buffer are interpreted relative to the specified <paramref name="vertexOffset"/>.
+        /// For example a value of zero in the array of indices points to the vertex at index <paramref name="vertexOffset"/>
+        /// in the array of vertices.</remarks>
+        public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int numVertices, short[] indexData, int indexOffset, int primitiveCount) where T : struct, IVertexType
+        {
+            DrawUserIndexedPrimitives<T>(primitiveType, vertexData, vertexOffset, numVertices, indexData, indexOffset, primitiveCount, VertexDeclarationCache<T>.VertexDeclaration);
+        }
+
+        /// <summary>
+        /// Draw primitives of the specified type by indexing into the given array of vertices with 16-bit indices.
+        /// </summary>
+        /// <typeparam name="T">The type of the vertices.</typeparam>
+        /// <param name="primitiveType">The type of primitives to draw with the vertices.</param>
+        /// <param name="vertexData">An array of vertices to draw.</param>
+        /// <param name="vertexOffset">The index in the array of the first vertex to draw.</param>
+        /// <param name="indexOffset">The index in the array of indices of the first index to use</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
+        /// <param name="numVertices">The number of vertices to draw.</param>
+        /// <param name="indexData">The index data.</param>
+        /// <param name="vertexDeclaration">The layout of the vertices.</param>
+        /// <remarks>All indices in the vertex buffer are interpreted relative to the specified <paramref name="vertexOffset"/>.
+        /// For example a value of zero in the array of indices points to the vertex at index <paramref name="vertexOffset"/>
+        /// in the array of vertices.</remarks>
+        public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int numVertices, short[] indexData, int indexOffset, int primitiveCount, VertexDeclaration vertexDeclaration) where T : struct
+        {
+            // These parameter checks are a duplicate of the checks in the int[] overload of DrawUserIndexedPrimitives.
+            // Inlined here for efficiency.
+
+            if (vertexData == null || vertexData.Length == 0)
+                throw new ArgumentNullException("vertexData");
+
+            if (vertexOffset < 0 || vertexOffset >= vertexData.Length)
+                throw new ArgumentOutOfRangeException("vertexOffset");
+
+            if (numVertices <= 0 || numVertices > vertexData.Length)
+                throw new ArgumentOutOfRangeException("numVertices");
+
+            if (vertexOffset + numVertices > vertexData.Length)
+                throw new ArgumentOutOfRangeException("numVertices");
+
+            if (indexData == null || indexData.Length == 0)
+                throw new ArgumentNullException("indexData");
+
+            if (indexOffset < 0 || indexOffset >= indexData.Length)
+                throw new ArgumentOutOfRangeException("indexOffset");
+
+            if (primitiveCount <= 0)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            if (indexOffset + GetElementCountArray(primitiveType, primitiveCount) > indexData.Length)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            if (vertexDeclaration == null)
+                throw new ArgumentNullException("vertexDeclaration");
+
+            if (vertexDeclaration.VertexStride < ReflectionHelpers.SizeOf<T>.Get())
+                throw new ArgumentOutOfRangeException("vertexDeclaration", "Vertex stride of vertexDeclaration should be at least as big as the stride of the actual vertices.");
+
+            PlatformDrawUserIndexedPrimitives<T>(primitiveType, vertexData, vertexOffset, numVertices, indexData, indexOffset, primitiveCount, vertexDeclaration);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+                _graphicsMetrics._primitiveCount +=  primitiveCount;
+            }
+        }
+
+        /// <summary>
+        /// Draw primitives of the specified type by indexing into the given array of vertices with 32-bit indices.
+        /// </summary>
+        /// <typeparam name="T">The type of the vertices.</typeparam>
+        /// <param name="primitiveType">The type of primitives to draw with the vertices.</param>
+        /// <param name="vertexData">An array of vertices to draw.</param>
+        /// <param name="vertexOffset">The index in the array of the first vertex to draw.</param>
+        /// <param name="indexOffset">The index in the array of indices of the first index to use</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
+        /// <param name="numVertices">The number of vertices to draw.</param>
+        /// <param name="indexData">The index data.</param>
+        /// <remarks>The <see cref="VertexDeclaration"/> will be found by getting <see cref="IVertexType.VertexDeclaration"/>
+        /// from an instance of <typeparamref name="T"/> and cached for subsequent calls.</remarks>
+        /// <remarks>All indices in the vertex buffer are interpreted relative to the specified <paramref name="vertexOffset"/>.
+        /// For example a value of zero in the array of indices points to the vertex at index <paramref name="vertexOffset"/>
+        /// in the array of vertices.</remarks>
+        public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int numVertices, int[] indexData, int indexOffset, int primitiveCount) where T : struct, IVertexType
+        {
+            DrawUserIndexedPrimitives<T>(primitiveType, vertexData, vertexOffset, numVertices, indexData, indexOffset, primitiveCount, VertexDeclarationCache<T>.VertexDeclaration);
+        }
+
+        /// <summary>
+        /// Draw primitives of the specified type by indexing into the given array of vertices with 32-bit indices.
+        /// </summary>
+        /// <typeparam name="T">The type of the vertices.</typeparam>
+        /// <param name="primitiveType">The type of primitives to draw with the vertices.</param>
+        /// <param name="vertexData">An array of vertices to draw.</param>
+        /// <param name="vertexOffset">The index in the array of the first vertex to draw.</param>
+        /// <param name="indexOffset">The index in the array of indices of the first index to use</param>
+        /// <param name="primitiveCount">The number of primitives to draw.</param>
+        /// <param name="numVertices">The number of vertices to draw.</param>
+        /// <param name="indexData">The index data.</param>
+        /// <param name="vertexDeclaration">The layout of the vertices.</param>
+        /// <remarks>All indices in the vertex buffer are interpreted relative to the specified <paramref name="vertexOffset"/>.
+        /// For example value of zero in the array of indices points to the vertex at index <paramref name="vertexOffset"/>
+        /// in the array of vertices.</remarks>
+        public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int numVertices, int[] indexData, int indexOffset, int primitiveCount, VertexDeclaration vertexDeclaration) where T : struct
+        {
+            // These parameter checks are a duplicate of the checks in the short[] overload of DrawUserIndexedPrimitives.
+            // Inlined here for efficiency.
+
+            if (vertexData == null || vertexData.Length == 0)
+                throw new ArgumentNullException("vertexData");
+
+            if (vertexOffset < 0 || vertexOffset >= vertexData.Length)
+                throw new ArgumentOutOfRangeException("vertexOffset");
+
+            if (numVertices <= 0 || numVertices > vertexData.Length)
+                throw new ArgumentOutOfRangeException("numVertices");
+
+            if (vertexOffset + numVertices > vertexData.Length)
+                throw new ArgumentOutOfRangeException("numVertices");
+
+            if (indexData == null || indexData.Length == 0)
+                throw new ArgumentNullException("indexData");
+
+            if (indexOffset < 0 || indexOffset >= indexData.Length)
+                throw new ArgumentOutOfRangeException("indexOffset");
+
+            if (primitiveCount <= 0)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            if (indexOffset + GetElementCountArray(primitiveType, primitiveCount) > indexData.Length)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            if (vertexDeclaration == null)
+                throw new ArgumentNullException("vertexDeclaration");
+
+            if (vertexDeclaration.VertexStride < ReflectionHelpers.SizeOf<T>.Get())
+                throw new ArgumentOutOfRangeException("vertexDeclaration", "Vertex stride of vertexDeclaration should be at least as big as the stride of the actual vertices.");
+
+            PlatformDrawUserIndexedPrimitives<T>(primitiveType, vertexData, vertexOffset, numVertices, indexData, indexOffset, primitiveCount, vertexDeclaration);
+            
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+                _graphicsMetrics._primitiveCount +=  primitiveCount;
+            }
+        }
+
+        /// <summary>
+        /// Draw instanced geometry from the bound vertex buffers and index buffer.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives in the index buffer.</param>
+        /// <param name="baseVertex">Used to offset the vertex range indexed from the vertex buffer.</param>
+        /// <param name="minVertexIndex">This is unused and remains here only for XNA API compatibility.</param>
+        /// <param name="numVertices">This is unused and remains here only for XNA API compatibility.</param>
+        /// <param name="startIndex">The index within the index buffer to start drawing from.</param>
+        /// <param name="primitiveCount">The number of primitives in a single instance.</param>
+        /// <param name="instanceCount">The number of instances to render.</param>
+        /// <remarks>Note that minVertexIndex and numVertices are unused in MonoGame and will be ignored.</remarks>
+        [Obsolete("Use DrawInstancedPrimitives(PrimitiveType primitiveType, int baseVertex, int startIndex, int primitiveCount, int instanceCount) instead. In future versions this method can be removed.")]
+        public void DrawInstancedPrimitives(PrimitiveType primitiveType, int baseVertex, int minVertexIndex,
+                                            int numVertices, int startIndex, int primitiveCount, int instanceCount)
+        {
+            DrawInstancedPrimitives(primitiveType, baseVertex, startIndex, primitiveCount, 0, instanceCount);
+        }
+
+        /// <summary>
+        /// Draw instanced geometry from the bound vertex buffers and index buffer.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives in the index buffer.</param>
+        /// <param name="baseVertex">Used to offset the vertex range indexed from the vertex buffer.</param>
+        /// <param name="startIndex">The index within the index buffer to start drawing from.</param>
+        /// <param name="primitiveCount">The number of primitives in a single instance.</param>
+        /// <param name="instanceCount">The number of instances to render.</param>
+        /// <remarks>Draw geometry with data from multiple bound vertex streams at different frequencies.</remarks>
+        public void DrawInstancedPrimitives(PrimitiveType primitiveType, int baseVertex, int startIndex, int primitiveCount, int instanceCount)
+        {
+            DrawInstancedPrimitives(primitiveType, baseVertex, startIndex, primitiveCount, 0, instanceCount);
+        }
+
+        /// <summary>
+        /// Draw instanced geometry from the bound vertex buffers and index buffer.
+        /// </summary>
+        /// <param name="primitiveType">The type of primitives in the index buffer.</param>
+        /// <param name="baseVertex">Used to offset the vertex range indexed from the vertex buffer.</param>
+        /// <param name="startIndex">The index within the index buffer to start drawing from.</param>
+        /// <param name="primitiveCount">The number of primitives in a single instance.</param>
+        /// <param name="baseInstance">Used to offset the instance range indexed from the instance buffer.</param>
+        /// <param name="instanceCount">The number of instances to render.</param>
+        /// <remarks>Draw geometry with data from multiple bound vertex streams at different frequencies.</remarks>
+        public void DrawInstancedPrimitives(PrimitiveType primitiveType, int baseVertex, int startIndex, int primitiveCount, int baseInstance, int instanceCount)
+        {
+            if (_vertexShader == null)
+                throw new InvalidOperationException("Vertex shader must be set before calling DrawInstancedPrimitives.");
+
+            if (_vertexBuffers.Count == 0)
+                throw new InvalidOperationException("Vertex buffer must be set before calling DrawInstancedPrimitives.");
+
+            if (_indexBuffer == null)
+                throw new InvalidOperationException("Index buffer must be set before calling DrawInstancedPrimitives.");
+
+            if (primitiveCount <= 0)
+                throw new ArgumentOutOfRangeException("primitiveCount");
+
+            PlatformDrawInstancedPrimitives(primitiveType, baseVertex, startIndex, primitiveCount, baseInstance, instanceCount);
+
+            unchecked
+            {
+                _graphicsMetrics._drawCount++;
+                _graphicsMetrics._primitiveCount += (primitiveCount * instanceCount);
+            }
+        }
+
+        /// <summary>
+        /// Gets the Pixel data of what is currently drawn on screen.
+        /// The format is whatever the current format of the backbuffer is.
+        /// </summary>
+        /// <typeparam name="T">A byte[] of size (ViewPort.Width * ViewPort.Height * 4)</typeparam>
+        public void GetBackBufferData<T>(T[] data) where T : struct
+        {
+            if (data == null)
+                throw new ArgumentNullException("data");
+            GetBackBufferData(null, data, 0, data.Length);
+        }
+
+        public void GetBackBufferData<T>(T[] data, int startIndex, int elementCount) where T : struct
+        {
+            GetBackBufferData(null, data, startIndex, elementCount);
+        }
+
+        public void GetBackBufferData<T>(Rectangle? rect, T[] data, int startIndex, int elementCount)
+            where T : struct
+        {
+            if (data == null)
+                throw new ArgumentNullException("data");
+
+            int width, height;
+            if (rect.HasValue)
+            {
+                var rectangle = rect.Value;
+                width = rectangle.Width;
+                height = rectangle.Height;
+
+                if (rectangle.X < 0 || rectangle.Y < 0 || rectangle.Width <= 0 || rectangle.Height <= 0 ||
+                    rectangle.Right > PresentationParameters.BackBufferWidth || rectangle.Top > PresentationParameters.BackBufferHeight)
+                    throw new ArgumentException("Rectangle must fit in BackBuffer dimensions");
+            }
             else
-                GL11.DrawArrays(PrimitiveTypeGL11(primitiveType), vertexStart, GetElementCountArray(primitiveType, primitiveCount));
-        }
-
-        public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int vertexCount, short[] indexData, int indexOffset, int primitiveCount) where T : struct, IVertexType
-        {
-            ////////////////////////////
-            //This has not been tested//
-            ////////////////////////////
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
             {
-                // Unbind the VBOs
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL20.GenBuffers(1, ref VboIdArray);
-                if (VboIdElement == 0)
-                    GL20.GenBuffers(1, ref VboIdElement);
-
-                // Bind the VBO
-                GL20.BindBuffer(ALL20.ArrayBuffer, VboIdArray);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, VboIdElement);
-                ////Clear previous data
-                GL20.BufferData(ALL20.ArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-                GL20.BufferData(ALL20.ElementArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof (T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-                var handle2 = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL20.BufferData(ALL20.ArrayBuffer,
-                                (IntPtr) (vd.VertexStride*GetElementCountArray(primitiveType, primitiveCount)),
-                                new IntPtr(handle.AddrOfPinnedObject().ToInt64() + (vertexOffset*vd.VertexStride)),
-                                ALL20.DynamicDraw);
-                GL20.BufferData(ALL20.ElementArrayBuffer,
-                                (IntPtr) (sizeof (ushort)*GetElementCountArray(primitiveType, primitiveCount)),
-                                indexData, ALL20.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL20.DrawElements(PrimitiveTypeGL20(primitiveType), GetElementCountArray(primitiveType, primitiveCount),
-                                  ALL20.UnsignedShort, (IntPtr) (indexOffset*sizeof (ushort)));
-
-
-                // Free resources
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-                handle.Free();
-                handle2.Free();
-            }else
-            {
-                // Unbind the VBOs
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL11.GenBuffers(1, ref VboIdArray);
-                if (VboIdElement == 0)
-                    GL11.GenBuffers(1, ref VboIdElement);
-
-                // Bind the VBO
-                GL11.BindBuffer(ALL11.ArrayBuffer, VboIdArray);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, VboIdElement);
-                ////Clear previous data
-                GL11.BufferData(ALL11.ArrayBuffer, (IntPtr)0, (IntPtr)null, ALL11.DynamicDraw);
-                GL11.BufferData(ALL11.ElementArrayBuffer, (IntPtr)0, (IntPtr)null, ALL11.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof(T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-                var handle2 = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL11.BufferData(ALL11.ArrayBuffer,
-                                (IntPtr)(vd.VertexStride * GetElementCountArray(primitiveType, primitiveCount)),
-                                new IntPtr(handle.AddrOfPinnedObject().ToInt64() + (vertexOffset * vd.VertexStride)),
-                                ALL11.DynamicDraw);
-                GL11.BufferData(ALL11.ElementArrayBuffer,
-                                (IntPtr)(sizeof(ushort) * GetElementCountArray(primitiveType, primitiveCount)),
-                                indexData, ALL11.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL11.DrawElements(PrimitiveTypeGL11(primitiveType), GetElementCountArray(primitiveType, primitiveCount),
-                                  ALL11.UnsignedShort, (IntPtr)(indexOffset * sizeof(ushort)));
-
-
-                // Free resources
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-                handle.Free();
-                handle2.Free();
+                width = PresentationParameters.BackBufferWidth;
+                height = PresentationParameters.BackBufferHeight;
             }
+
+            var tSize = ReflectionHelpers.SizeOf<T>.Get();
+            var fSize = PresentationParameters.BackBufferFormat.GetSize();
+            if (tSize > fSize || fSize % tSize != 0)
+                throw new ArgumentException("Type T is of an invalid size for the format of this texture.", "T");
+            if (startIndex < 0 || startIndex >= data.Length)
+                throw new ArgumentException("startIndex must be at least zero and smaller than data.Length.", "startIndex");
+            if (data.Length < startIndex + elementCount)
+                throw new ArgumentException("The data array is too small.");
+            var dataByteSize = width * height * fSize;
+
+            if (elementCount * tSize != dataByteSize)
+                throw new ArgumentException(string.Format("elementCount is not the right size, " +
+                                            "elementCount * sizeof(T) is {0}, but data size is {1} bytes.",
+                                            elementCount * tSize, dataByteSize), "elementCount");
+
+            PlatformGetBackBufferData(rect, data, startIndex, elementCount);
         }
 
-        public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int vertexCount, uint[] indexData, int indexOffset, int primitiveCount) where T : struct, IVertexType
+        private static int GetElementCountArray(PrimitiveType primitiveType, int primitiveCount)
         {
-            ////////////////////////////
-            //This has not been tested//
-            ////////////////////////////
-
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-            {
-                // Unbind the VBOs
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL20.GenBuffers(1, ref VboIdArray);
-                if (VboIdElement == 0)
-                    GL20.GenBuffers(1, ref VboIdElement);
-
-                // Bind the VBO
-                GL20.BindBuffer(ALL20.ArrayBuffer, VboIdArray);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, VboIdElement);
-                ////Clear previous data
-                GL20.BufferData(ALL20.ArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-                GL20.BufferData(ALL20.ElementArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof (T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-                var handle2 = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL20.BufferData(ALL20.ArrayBuffer,
-                                (IntPtr) (vd.VertexStride*GetElementCountArray(primitiveType, primitiveCount)),
-                                new IntPtr(handle.AddrOfPinnedObject().ToInt64() + (vertexOffset*vd.VertexStride)),
-                                ALL20.DynamicDraw);
-                GL20.BufferData(ALL20.ElementArrayBuffer,
-                                (IntPtr) (sizeof (uint)*GetElementCountArray(primitiveType, primitiveCount)), indexData,
-                                ALL20.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL20.DrawElements(PrimitiveTypeGL20(primitiveType), GetElementCountArray(primitiveType, primitiveCount),
-                                  ALL20.UnsignedInt248Oes, (IntPtr) (indexOffset*sizeof (uint)));
-
-
-                // Free resources
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-                handle.Free();
-                handle2.Free();
-            }else
-            {
-                // Unbind the VBOs
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL11.GenBuffers(1, ref VboIdArray);
-                if (VboIdElement == 0)
-                    GL11.GenBuffers(1, ref VboIdElement);
-
-                // Bind the VBO
-                GL11.BindBuffer(ALL11.ArrayBuffer, VboIdArray);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, VboIdElement);
-                ////Clear previous data
-                GL11.BufferData(ALL11.ArrayBuffer, (IntPtr)0, (IntPtr)null, ALL11.DynamicDraw);
-                GL11.BufferData(ALL11.ElementArrayBuffer, (IntPtr)0, (IntPtr)null, ALL11.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof(T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-                var handle2 = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL11.BufferData(ALL11.ArrayBuffer,
-                                (IntPtr)(vd.VertexStride * GetElementCountArray(primitiveType, primitiveCount)),
-                                new IntPtr(handle.AddrOfPinnedObject().ToInt64() + (vertexOffset * vd.VertexStride)),
-                                ALL11.DynamicDraw);
-                GL11.BufferData(ALL11.ElementArrayBuffer,
-                                (IntPtr)(sizeof(uint) * GetElementCountArray(primitiveType, primitiveCount)), indexData,
-                                ALL11.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL11.DrawElements(PrimitiveTypeGL11(primitiveType), GetElementCountArray(primitiveType, primitiveCount),
-                                  ALL11.UnsignedInt248Oes, (IntPtr)(indexOffset * sizeof(uint)));
-
-
-                // Free resources
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-                handle.Free();
-                handle2.Free();
-            }
-        }
-		
-		public void DrawUserIndexedPrimitives<T>(PrimitiveType primitiveType, T[] vertexData, int vertexOffset, int vertexCount, int[] indexData, int indexOffset, int primitiveCount) where T : struct, IVertexType
-        {
-            ////////////////////////////
-            //This has not been tested//
-            ////////////////////////////
-
-#if IPHONE
-			if(OpenGLESVersion == EAGLRenderingAPI.OpenGLES2)
-#elif ANDROID
-            if (OpenGLESVersion == GLContextVersion.Gles2_0)
-#else
-            if (false)
-#endif
-            {
-                // Unbind the VBOs
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL20.GenBuffers(1, ref VboIdArray);
-                if (VboIdElement == 0)
-                    GL20.GenBuffers(1, ref VboIdElement);
-
-                // Bind the VBO
-                GL20.BindBuffer(ALL20.ArrayBuffer, VboIdArray);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, VboIdElement);
-                ////Clear previous data
-                GL20.BufferData(ALL20.ArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-                GL20.BufferData(ALL20.ElementArrayBuffer, (IntPtr) 0, (IntPtr) null, ALL20.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof (T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-                var handle2 = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL20.BufferData(ALL20.ArrayBuffer,
-                                (IntPtr) (vd.VertexStride*GetElementCountArray(primitiveType, primitiveCount)),
-                                new IntPtr(handle.AddrOfPinnedObject().ToInt64() + (vertexOffset*vd.VertexStride)),
-                                ALL20.DynamicDraw);
-                GL20.BufferData(ALL20.ElementArrayBuffer,
-                                (IntPtr) (sizeof (int)*GetElementCountArray(primitiveType, primitiveCount)), indexData,
-                                ALL20.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL20.DrawElements(PrimitiveTypeGL20(primitiveType), GetElementCountArray(primitiveType, primitiveCount),
-                                  ALL20.UnsignedInt248Oes, (IntPtr) (indexOffset*sizeof (uint)));
-
-
-                // Free resources
-                GL20.BindBuffer(ALL20.ArrayBuffer, 0);
-                GL20.BindBuffer(ALL20.ElementArrayBuffer, 0);
-                handle.Free();
-                handle2.Free();
-            }else
-            {
-                // Unbind the VBOs
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-
-                //Create VBO if not created already
-                if (VboIdArray == 0)
-                    GL11.GenBuffers(1, ref VboIdArray);
-                if (VboIdElement == 0)
-                    GL11.GenBuffers(1, ref VboIdElement);
-
-                // Bind the VBO
-                GL11.BindBuffer(ALL11.ArrayBuffer, VboIdArray);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, VboIdElement);
-                ////Clear previous data
-                GL11.BufferData(ALL11.ArrayBuffer, (IntPtr)0, (IntPtr)null, ALL11.DynamicDraw);
-                GL11.BufferData(ALL11.ElementArrayBuffer, (IntPtr)0, (IntPtr)null, ALL11.DynamicDraw);
-
-                //Get VertexDeclaration
-                var vd = VertexDeclaration.FromType(typeof(T));
-
-                //Pin data
-                var handle = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-                var handle2 = GCHandle.Alloc(vertexData, GCHandleType.Pinned);
-
-                //Buffer data to VBO; This should use stream when we move to ES2.0
-                GL11.BufferData(ALL11.ArrayBuffer,
-                                (IntPtr)(vd.VertexStride * GetElementCountArray(primitiveType, primitiveCount)),
-                                new IntPtr(handle.AddrOfPinnedObject().ToInt64() + (vertexOffset * vd.VertexStride)),
-                                ALL11.DynamicDraw);
-                GL11.BufferData(ALL11.ElementArrayBuffer,
-                                (IntPtr)(sizeof(int) * GetElementCountArray(primitiveType, primitiveCount)), indexData,
-                                ALL11.DynamicDraw);
-
-                //Setup VertexDeclaration
-                VertexDeclaration.PrepareForUse(vd, IntPtr.Zero);
-
-                //Draw
-                GL11.DrawElements(PrimitiveTypeGL11(primitiveType), GetElementCountArray(primitiveType, primitiveCount),
-                                  ALL11.UnsignedInt248Oes, (IntPtr)(indexOffset * sizeof(uint)));
-
-
-                // Free resources
-                GL11.BindBuffer(ALL11.ArrayBuffer, 0);
-                GL11.BindBuffer(ALL11.ElementArrayBuffer, 0);
-                handle.Free();
-                handle2.Free();
-            }
-        }
-
-        internal int GetElementCountArray(PrimitiveType primitiveType, int primitiveCount)
-        {
-            //TODO: Overview the calculation
             switch (primitiveType)
             {
                 case PrimitiveType.LineList:
@@ -1343,18 +1434,28 @@ namespace Microsoft.Xna.Framework.Graphics
                 case PrimitiveType.TriangleList:
                     return primitiveCount * 3;
                 case PrimitiveType.TriangleStrip:
-                    return 3 + (primitiveCount - 1); // ???
+                    return primitiveCount + 2;
             }
 
             throw new NotSupportedException();
         }
-		
-		
-		internal void SetViewPort(int Width, int Height)
-		{
-			this._viewport.Width = Width;
-			this._viewport.Height = Height;
-		}
 
+        // uniformly scales down the given rectangle by 10%
+        internal static Rectangle GetDefaultTitleSafeArea(int x, int y, int width, int height)
+        {
+            var marginX = (width + 19) / 20;
+            var marginY = (height + 19) / 20;
+            x += marginX;
+            y += marginY;
+
+            width -= marginX * 2;
+            height -= marginY * 2;
+            return new Rectangle(x, y, width, height);
+        }
+
+        internal static Rectangle GetTitleSafeArea(int x, int y, int width, int height)
+        {
+            return PlatformGetTitleSafeArea(x, y, width, height);
+        }
     }
 }

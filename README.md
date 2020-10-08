@@ -1,99 +1,102 @@
-# WHAT IS MONOGAME
-MonoGame is an OpenSource, OpenGL implementation of Microsoft's XNA 4 APIs that allows developers to build games that run on Android, iPhone, iPad, MacOS, Linux and soon PlayStation Suite and Windows Metro, all reusing their existing XNA code that runs on Xbox 360 or Windows Phone 7.
+﻿# MonoGame
 
-# LATEST NEWS
-v2.5 has been released and is now available for public consumption.
+One framework for creating powerful cross-platform games.  The spiritual successor to XNA with thousands of titles shipped across desktop, mobile, and console platforms.  [MonoGame](http://www.monogame.net/) is a fully managed .NET open source game framework without any black boxes.  Create, develop and distribute your games your way.
 
-[Infinite Flight](http://itunes.apple.com/us/app/infinite-flight/id471341991?ls=1&mt=8), MonoGame's first 3D powered game, has been released.
+[![Join the chat at https://discord.gg/tsuucV4](https://img.shields.io/discord/355231098122272778?color=%237289DA&label=MonoGame&logo=discord&logoColor=white)](https://discord.gg/tsuucV4) [![Join the chat at https://gitter.im/MonoGame/MonoGame](https://badges.gitter.im/MonoGame/MonoGame.svg)](https://gitter.im/MonoGame/MonoGame?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-# FEATURED GAMES
-### [Infinite Flight](http://itunes.apple.com/us/app/infinite-flight/id471341991?ls=1&mt=8)
+ * [Build Status](#build-status)
+ * [Supported Platforms](#supported-platforms)
+ * [Support and Contributions](#support-and-contributions)
+ * [Source Code](#source-code)
+ * [Helpful Links](#helpful-links)
+ * [License](#license)
+ 
 
-This awesome flight simulator is now available on the [Apple App Store](http://itunes.apple.com/us/app/infinite-flight/id471341991?ls=1&mt=8). 
+## Build Status
 
-Here are some quotes from people how have played it already....
+Our [build server](http://teamcity.monogame.net/?guest=1) builds, tests, and packages the latest MonoGame changes.  The table below shows the current build status for the develop branch.
 
-    Looks great, very smooth, very complete. 5/5
-    
-    Wow, this is fantastic. I just finished flying from KLAZ-KSAN and it was amazing. I am really excited for A321,CRJ and all the other planes. X plane has been deleted :)))  5/5
-    
-    This simulator is fantastic!!!! Best yet!! Looking forward to more planes and cockpits :) 5/5
+| Name  | Status |
+|:---|--------|
+| Build Windows, Web, and Android | [![Build Status](http://teamcity.monogame.net/app/rest/builds/buildType:MonoGame_DevelopWin/statusIcon)](http://teamcity.monogame.net/viewType.html?buildTypeId=MonoGame_DevelopWin&guest=1) |
+| Build Mac, iOS, and Linux | [![Build Status](http://teamcity.monogame.net/app/rest/builds/buildType:MonoGame_DevelopMac/statusIcon)](http://teamcity.monogame.net/viewType.html?buildTypeId=MonoGame_DevelopMac&guest=1) |
+| Windows Tests | [![Build Status](http://teamcity.monogame.net/app/rest/builds/buildType:MonoGame_TestWindows/statusIcon)](http://teamcity.monogame.net/viewType.html?buildTypeId=MonoGame_TestWindows&guest=1) |
+| Mac Tests | [![Build Status](http://teamcity.monogame.net/app/rest/builds/buildType:MonoGame_TestMac/statusIcon)](http://teamcity.monogame.net/viewType.html?buildTypeId=MonoGame_TestMac&guest=1) |
 
-This is MonoGame's first 3D game and we are very grateful that [Inflight Dev Studio](http://flyingdevstudio.blogspot.co.uk) donated their changes back to our codebase, thus speeding up our 3D implementation immeasurably. 
+
+## Supported Platforms
+
+We support a growing list of platforms across the desktop, mobile, and console space.  If there is a platform we don't support, please [make a request](https://github.com/MonoGame/MonoGame/issues) or [come help us](CONTRIBUTING.md) add it.
+
+ * Desktop PCs
+   * Windows 10 Store Apps (UWP)
+   * Windows Win32 (OpenGL & DirectX)
+   * Linux (OpenGL)
+   * Mac OS X (OpenGL)
+ * Mobile/Tablet Devices
+   * Android (OpenGL)
+   * iPhone/iPad (OpenGL)
+   * Windows Phone 10 (UWP)
+ * Consoles (for registered developers)
+   * PlayStation 4
+   * PlayStation Vita
+   * Xbox One (both UWP and XDK)
+   * Nintendo Switch
+   * Google Stadia
+ * Other
+   * tvOS (OpenGL)
 
 
-### [Bastion](https://chrome.google.com/webstore/detail/oohphhdkahjlioohbalmicpokoefkgid)
+## Support and Contributions
 
-This game has won [numerous awards](http://supergiantgames.com/?p=1286) for its narration and music, when it was released on XBox 360,
-The development team used a modified MonoGame engine to port their game to Google's Native Client and therefore onto Google App Store.
-We are hoping to find out what mods they made to MonoGame and how others could submit their games to Google's App Store.
+If you think you have found a bug or have a feature request, use our [issue tracker](https://github.com/MonoGame/MonoGame/issues). Before opening a new issue, please search to see if your problem has already been reported.  Try to be as detailed as possible in your issue reports.
 
-This is what players had to say about the Google Chrome version of the game...
+If you need help using MonoGame or have other questions we suggest you post on our [community forums](http://community.monogame.net).  Please do not use the GitHub issue tracker for personal support requests.
 
-    I finished the game, it was amazing! A beautiful game with excellent graphic and very interesting story, the voice of the narrator makes a good ambiance in the game 5/5    
-    
-    I've played through this game twice. It's a little laggy on chrome, but this is one of the best games of 2011. It stands toe to toe with Portal 2 and Skyrim. It's that good. 5/5
-    
-    This game is amazing. The post-apocalyptic scenario, the easy-to-use controls, and well, smashing things. It can be really hard sometimes (specially if you are using idols), and you've got to be quick and train at least a little with each weapon to get how to use it properly. They deserved my $15. 5/5
+If you are interested in contributing fixes or features to MonoGame, please read our [contributors guide](CONTRIBUTING.md) first.
 
-# ROADMAP
-    The 3.x series will extend MonoGame with support for the XNA 4 3D APIs.
-    After 3.x is released work will begin on support for Sony PlayStation Suite SDK and Windows 8/WinRT
+### Subscription
 
-# HOW YOU CAN HELP
+If you'd like to help the project by supporting us financially, consider supporting us via a subscription for the price of a monthly coffee.
 
-Firstly, go over to github and register. Then fork the main repo found at https://github.com/mono/MonoGame
-This will allow you to make changes to your own repo and send us patches and enhancements, thus benefiting everyone.
-Once you've done a *git clone [your forked repo]*, if you are interested in the associated sub-modules like Samples and Starterkits, you will need to execute the *git submodule init* and *git submodule update* commands, to pull them all down.
+Money goes towards hosting, new hardware and if enough people subscribe a dedicated developer.
 
-You can also join the active community of developers on IRC at irc.gnome.org on the #monogame channel, where the day-to-day improvements are being discussed in real time.
-If you release a game using MonoGame, please let us know so we can update our released games page, and mention MonoGame in your tweet.
+There are several options on our [Donation Page](http://www.monogame.net/donate/).
 
-# SPECIAL THANKS TO
 
-Jalfx (for starting this project in 2010, when it was called XNATouch)
-kjpou1
-technomage
-slygamer
-Clancey
-kangaroo
-Grapes
-taskbit
-jdindia
-vchelaru
-JorgeMagic
-jordoh
-_brain
-kelthar
-adreesteve
-mgroves
-espes
-cschwarz
-cadahl
-CircleOf14
-vostok4
-viyano
+## Source Code
 
-[Team Xamarin](http://www.xamarin.com) for their support and continued great work on all things Mono
-and everyone else that submitted patches/fixes and enhancements. Without your contributions this release would not have been possible.
+The full source code is available here from GitHub:
 
-# Sponsors
-MonoGame is actively being worked on by...
+ * Clone the source: `git clone https://github.com/MonoGame/MonoGame.git`
+ * Set up the submodules: `git submodule update --init`
+ * Open the solution for your target platform to build the game framework.
+ * Open the Tools solution for your development platform to build the pipeline and content tools.
 
-[Syderis Technologies](http://www.syderis.com)
+For the prerequisites for building from source, please look at the [Requirements](REQUIREMENTS.md) file.
 
-<img src="http://www.syderis.com/images/galerias/logo_normal.png" alt="Syderis Logo" title="Syderis"/>
+A high level breakdown of the components of the framework:
 
-and
+ * The game framework is found in [MonoGame.Framework](MonoGame.Framework).
+ * The content pipeline is located in [MonoGame.Framework.Content.Pipeline](MonoGame.Framework.Content.Pipeline).
+ * Project templates are in [Templates](Templates).
+ * See [Tests](Tests) for the framework unit tests.
+ * See [Tools/Tests](Tools/MonoGame.Tools.Tests) for the content pipeline and other tool tests.
+ * [mgcb](Tools/MonoGame.Content.Builder) is the command line tool for content processing.
+ * [mgfxc](Tools/MonoGame.Effect.Compiler) is the command line effect compiler tool.
+ * The [mgcb-editor](Tools/MonoGame.Content.Builder.Editor) tool is a GUI frontend for content processing.
 
-[Savage Software Solutions Ltd.](http://www.SavageSoftwareSolutions.com/) 
 
-<img src="http://www.savagesoftwaresolutions.com/images_sav/savage_lrg.png" alt="Savage Software Solutions Logo" title="Savage Software Solutions" width="215"/>
+## Helpful Links
 
-and
+ * The official website is [monogame.net](http://www.monogame.net).
+ * Our [issue tracker](https://github.com/MonoGame/MonoGame/issues) is on GitHub.
+ * Use our [community forums](http://community.monogame.net/) for support questions.
+ * You can [chat live](https://gitter.im/mono/MonoGame?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) with the core developers and other users.
+ * The [official documentation](http://www.monogame.net/documentation/) is on our website.
+ * Download release and development [installers and packages](http://www.monogame.net/downloads/).
+ * Follow [@MonoGameTeam](https://twitter.com/monogameteam) on Twitter.
 
-[Some members of Team Mono - Unofficially](http://mono-project.com/) 
+## License
 
-<img src="http://mono-project.com/skins/MonoWaveWide/images/mp-mono-logo.png" width="215"/>
-
-If your company plans to use and contribute to MonoGame, why not become a sponsor. If you would like to sponsor MonoGame, please contact us.
+The MonoGame project is under the [Microsoft Public License](https://opensource.org/licenses/MS-PL) except for a few portions of the code.  See the [LICENSE.txt](LICENSE.txt) file for more details.  Third-party libraries used by MonoGame are under their own licenses.  Please refer to those libraries for details on the license they use.
