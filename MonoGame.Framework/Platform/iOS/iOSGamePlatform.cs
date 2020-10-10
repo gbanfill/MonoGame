@@ -90,6 +90,7 @@ namespace Microsoft.Xna.Framework
         private UIWindow _mainWindow;
         private List<NSObject> _applicationObservers;
         private CADisplayLink _displayLink;
+        private bool _isExitPending;
 
         public iOSGamePlatform(Game game) :
             base(game)
@@ -114,6 +115,11 @@ namespace Microsoft.Xna.Framework
             _viewController = new iOSGameViewController(this);
             game.Services.AddService (typeof(UIViewController), _viewController);
             Window = new iOSGameWindow (_viewController);
+
+            // In iOS 8+ we need to set the root view controller *after* Window MakeKey
+            // This ensures that the viewController's supported interface orientations
+            // will be respected at launch
+            _mainWindow.RootViewController = _viewController;
 
             _mainWindow.Add (_viewController.View);
 
@@ -199,11 +205,6 @@ namespace Microsoft.Xna.Framework
             // Show the window
             _mainWindow.MakeKeyAndVisible();
 
-            // In iOS 8+ we need to set the root view controller *after* Window MakeKey
-            // This ensures that the viewController's supported interface orientations
-            // will be respected at launch
-            _mainWindow.RootViewController = _viewController;
-
             BeginObservingUIApplication();
 
             _viewController.View.BecomeFirstResponder();
@@ -212,6 +213,9 @@ namespace Microsoft.Xna.Framework
 
         internal void Tick()
         {
+            if (PerformPendingExit())
+                return;
+
             if (!Game.IsActive)
                 return;
 
@@ -266,7 +270,7 @@ namespace Microsoft.Xna.Framework
 
         public override void Exit()
         {
-            // Do Nothing: iOS games do not "exit" or shut down.
+            _isExitPending = true;
         }
 
         private void BeginObservingUIApplication()
@@ -364,5 +368,54 @@ namespace Microsoft.Xna.Framework
 		public override void EndScreenDeviceChange (string screenDeviceName, int clientWidth,int clientHeight)
 		{
 		}
-	}
+
+        private bool PerformPendingExit()
+        {
+            if (!_isExitPending)
+                return false;
+
+            _isExitPending = false;
+
+            if (_displayLink != null)
+            {
+                _displayLink.Invalidate();
+                _displayLink.Dispose();
+                _displayLink = null;
+            }
+
+            UIApplication.SharedApplication.SetStatusBarHidden(false, UIStatusBarAnimation.Fade);
+
+            if (_viewController != null)
+            {
+                _viewController.InterfaceOrientationChanged -= ViewController_InterfaceOrientationChanged;
+                _viewController.View.RemoveFromSuperview();
+                _viewController.View.Dispose();
+                _viewController.RemoveFromParentViewController();
+                _viewController.Dispose();
+                _viewController = null;
+            }
+
+            if (_mainWindow != null)
+            {
+                _mainWindow.RemoveFromSuperview();
+                _mainWindow.Dispose();
+                _mainWindow = null;
+            }
+
+            if (Window != null)
+            {
+                Window = null;
+            }
+
+            StopObservingUIApplication();
+            RaiseAsyncRunLoopEnded();
+            return true;
+        }
+
+        private void StopObservingUIApplication()
+        {
+            NSNotificationCenter.DefaultCenter.RemoveObservers(_applicationObservers);
+            _applicationObservers.Clear();
+        }
+    }
 }

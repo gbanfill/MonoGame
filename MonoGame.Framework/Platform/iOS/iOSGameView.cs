@@ -157,18 +157,25 @@ namespace Microsoft.Xna.Framework {
 		{
 			AssertNotDisposed ();
 
-            // RetainedBacking controls if the content of the colorbuffer should be preserved after being displayed
-            // This is the XNA equivalent to set PreserveContent when initializing the GraphicsDevice
-            // (should be false by default for better performance)
-			Layer.DrawableProperties = NSDictionary.FromObjectsAndKeys (
-				new NSObject [] {
-					NSNumber.FromBoolean (false), 
-					EAGLColorFormat.RGBA8
-				},
-				new NSObject [] {
+			if (GraphicsOverrideMode.GraphicsOverrideSettings == null)
+			{
+
+				GraphicsOverrideMode.GraphicsOverrideSettings = new GraphicsOverrideSettings();
+			}
+
+			// RetainedBacking controls if the content of the colorbuffer should be preserved after being displayed
+			// This is the XNA equivalent to set PreserveContent when initializing the GraphicsDevice
+			// (should be false by default for better performance)
+			Layer.DrawableProperties = NSDictionary.FromObjectsAndKeys(
+					new NSObject[] {
+					NSNumber.FromBoolean(GraphicsOverrideMode.GraphicsOverrideSettings.RetainedBacking),
+					GraphicsOverrideMode.GraphicsOverrideSettings.STREAGLColorFormat
+					},
+					new NSObject[] {
 					EAGLDrawableProperty.RetainedBacking,
 					EAGLDrawableProperty.ColorFormat
-				});
+					});
+			Opaque = GraphicsOverrideMode.GraphicsOverrideSettings.Opaque;
 
 			Layer.ContentsScale = Window.Screen.Scale;
 
@@ -176,15 +183,18 @@ namespace Microsoft.Xna.Framework {
 			//strVersion = OpenTK.Graphics.ES20.GL.GetString (OpenTK.Graphics.ES20.All.Version);
 			//var version = Version.Parse (strVersion);
 
-			try {
-                __renderbuffergraphicsContext = GL.CreateContext (null);
-                //new GraphicsContext (null, null, 2, 0, GraphicsContextFlags.Embedded)
-            } catch (Exception ex) {
-                throw new Exception ("Device not Supported. GLES 2.0 or above is required!");
+			try
+			{
+				__renderbuffergraphicsContext = GL.CreateContext(null);
+				//new GraphicsContext (null, null, 2, 0, GraphicsContextFlags.Embedded)
+			}
+			catch (Exception ex)
+			{
+				throw new Exception("Device not Supported. GLES 2.0 or above is required!");
 			}
 
 			this.MakeCurrent();
-            _glapi = new Gles20Api();
+			_glapi = new Gles20Api();
 		}
 
 		private void DestroyContext ()

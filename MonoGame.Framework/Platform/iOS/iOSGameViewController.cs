@@ -29,7 +29,7 @@ namespace Microsoft.Xna.Framework
                 throw new ArgumentNullException("platform");
             _platform = platform;
             SupportedOrientations = 
-                DisplayOrientation.LandscapeLeft | DisplayOrientation.LandscapeRight 
+                DisplayOrientation.LandscapeLeft | DisplayOrientation.LandscapeRight
                 | DisplayOrientation.Portrait | DisplayOrientation.PortraitDown;
         }
 
@@ -92,7 +92,8 @@ namespace Microsoft.Xna.Framework
         #region Autorotation for iOS 6 or newer
         public override UIInterfaceOrientationMask GetSupportedInterfaceOrientations()
         {
-            return OrientationConverter.ToUIInterfaceOrientationMask(this.SupportedOrientations);
+            return UIInterfaceOrientationMask.LandscapeRight;
+            //return OrientationConverter.ToUIInterfaceOrientationMask(this.SupportedOrientations);
         }
 
         public override bool ShouldAutorotate()
