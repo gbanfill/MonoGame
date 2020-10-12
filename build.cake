@@ -6,7 +6,7 @@
 // ARGUMENTS
 //////////////////////////////////////////////////////////////////////
 
-var target = Argument("build-target", "Default");
+var target = Argument("build-target", "BuildiOS");
 var version = Argument("build-version", EnvironmentVariable("BUILD_NUMBER") ?? "3.8.0.1");
 var configuration = Argument("build-configuration", "Release");
 
@@ -72,6 +72,7 @@ Task("Prep")
     msPackSettings.Configuration = configuration;
     msPackSettings.Restore = true;
     msPackSettings.WithProperty("Version", version);
+    msPackSettings.WithProperty("PackageId", "Linknode.MonoGame.Framework.iOS");
     msPackSettings.WithTarget("Pack");
 
     mdPackSettings = new MSBuildSettings();
